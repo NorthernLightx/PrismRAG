@@ -70,6 +70,16 @@ COPY --chown=app:app qdrant_local /home/app/qdrant_local
 RUN /home/app/.venv/bin/python -c \
     "from sentence_transformers import SentenceTransformer, CrossEncoder; SentenceTransformer('BAAI/bge-m3'); CrossEncoder('cross-encoder/ms-marco-MiniLM-L-6-v2')"
 
+# ADR 0028: bake the ColQwen2 visual encoder so the multimodal serve path pays
+# no HuggingFace fetch at startup — a ~4 GB cold download would blow the Cloud
+# Run startup window. from_pretrained caches the adapter, its Qwen2-VL-2B base,
+# and the processor. Only the query is encoded at serve time; the page vectors
+# are pre-built into the Qdrant snapshot (scripts/build_visual_index.py). Adds
+# ~4 GB to the image; the visual leg only activates when RAG_ENABLE_MULTIMODAL
+# is set AND the visual collection is populated.
+RUN /home/app/.venv/bin/python -c \
+    "from colpali_engine.models import ColQwen2, ColQwen2Processor; ColQwen2.from_pretrained('vidore/colqwen2-v1.0'); ColQwen2Processor.from_pretrained('vidore/colqwen2-v1.0')"
+
 # RAG_RERANKER_MODEL: light CPU-feasible cross-encoder (see settings.py).
 # RAG_RERANK_TOP_K: trim the rerank pool 50 -> 20 for CPU latency; the 20-paper
 # demo corpus doesn't need a 50-candidate pool.
