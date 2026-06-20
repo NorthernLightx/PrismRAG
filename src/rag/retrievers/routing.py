@@ -58,7 +58,7 @@ _RRF_K = 60
 _DEFAULT_CASCADE_THRESHOLD = 0.85
 
 Category = Literal["table", "figure", "multi_hop", "factual", "definitional"]
-RoutingPath = Literal["text", "hybrid"]
+RoutingPath = Literal["text", "visual", "hybrid"]
 RoutingMode = Literal["category", "cascade"]
 
 # Precedence-ordered patterns. Order matters: a query like "compare Figure 3 vs
@@ -162,6 +162,11 @@ class RoutingRetriever:
         self._visual_fusion_weight = visual_fusion_weight
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
+        # A forced visual-only route bypasses both dispatch modes: run just the
+        # visual leg, no text, no fusion. (force_route="text"/"hybrid" are handled
+        # within each mode below.)
+        if query.force_route == "visual":
+            return await self._retrieve_visual_only(query)
         # query.routing_mode overrides the constructor mode for this call only.
         # Lets the demo UI A/B compare category vs cascade dispatch without
         # restarting the server.
@@ -170,7 +175,20 @@ class RoutingRetriever:
             return await self._retrieve_cascade(query)
 
         if self._classifier is not None:
-            category = await self._classifier.classify(query.text)
+            try:
+                category = await self._classifier.classify(query.text)
+            except Exception as exc:
+                # A missing or unreachable classifier backend must not take down
+                # retrieval. The keyless wiring path builds an Ollama-backed
+                # classifier (ADR 0013); on a deploy with no Ollama (Cloud Run)
+                # classify() would raise and 500 every /query. Fall back to the
+                # regex classifier — the dependency-free default (ADR 0008).
+                _log.warning(
+                    "routing.classifier_failed",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                )
+                category = classify_query(query.text)
         else:
             category = classify_query(query.text)
         forced = query.force_route is not None
@@ -224,6 +242,38 @@ class RoutingRetriever:
             fused_n=len(fused),
         )
         return fused
+
+    async def _retrieve_visual_only(self, query: Query) -> list[RetrievalResult]:
+        """Forced visual-only route: run the visual leg alone — no text leg, no
+        fusion. On a visual-leg failure, degrade to text-only like the other
+        paths so a GPU hiccup doesn't kill the demo (ADR 0008 §"Failure modes")."""
+        span = trace.get_current_span()
+        span.set_attribute("routing.mode", "category")
+        span.set_attribute("routing.forced", True)
+        visual_results = await self._safe_visual_retrieve(query, span)
+        if visual_results is None:
+            text_results = await self._text.retrieve(query)
+            self._log_category(
+                path="text",
+                category=None,
+                forced=True,
+                text_results=text_results,
+                visual_results=None,
+                fused_n=len(text_results),
+                visual_failed=True,
+            )
+            span.set_attribute("routing.path", "text")
+            return text_results
+        self._log_category(
+            path="visual",
+            category=None,
+            forced=True,
+            text_results=[],
+            visual_results=visual_results,
+            fused_n=len(visual_results),
+        )
+        span.set_attribute("routing.path", "visual")
+        return visual_results
 
     async def _retrieve_cascade(self, query: Query) -> list[RetrievalResult]:
         """Cascade dispatch: text first, fall back to hybrid only if uncertain.
@@ -338,7 +388,7 @@ class RoutingRetriever:
         self,
         *,
         path: RoutingPath,
-        category: Category,
+        category: Category | None,
         forced: bool,
         text_results: list[RetrievalResult],
         visual_results: list[RetrievalResult] | None,

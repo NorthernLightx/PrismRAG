@@ -130,10 +130,15 @@ def test_query_force_route_accepts_hybrid() -> None:
     assert q.force_route == "hybrid"
 
 
+def test_query_force_route_accepts_visual() -> None:
+    q = Query(text="hello", top_k=5, force_route="visual")
+    assert q.force_route == "visual"
+
+
 def test_query_force_route_rejects_invalid_literal() -> None:
-    """Pydantic Literal validation should reject anything outside {text, hybrid, None}."""
+    """Pydantic Literal validation should reject anything outside {text, visual, hybrid, None}."""
     with pytest.raises(ValidationError):
-        Query(text="hello", top_k=5, force_route="visual")
+        Query(text="hello", top_k=5, force_route="audio")
 
 
 # --------------------------------------------------------------------------
@@ -194,6 +199,96 @@ async def test_force_route_hybrid_overrides_definitional() -> None:
 
     assert text.calls == 1
     assert visual.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_force_route_visual_runs_visual_only() -> None:
+    """force_route='visual' runs ONLY the visual leg — no text leg, no fusion."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="anything", top_k=5, force_route="visual"))
+
+    assert visual.calls == 1
+    assert text.calls == 0  # text leg never invoked
+    assert [r.chunk_id for r in results] == ["paper1::p2::page"]
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.path == "visual"
+    assert info.forced is True
+
+
+@pytest.mark.asyncio
+async def test_force_route_visual_degrades_to_text_on_visual_failure() -> None:
+    """A visual-leg failure on the visual-only route degrades to text-only."""
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _FailingRetriever(RuntimeError("GPU OOM"))
+    router = RoutingRetriever(text=text, visual=visual)
+
+    results = await router.retrieve(Query(text="anything", top_k=5, force_route="visual"))
+
+    assert visual.calls == 1
+    assert text.calls == 1  # degraded to the text leg
+    assert [r.chunk_id for r in results] == ["paper1::p1::c0"]
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.path == "text"
+    assert info.visual_failed is True
+
+
+class _FailingClassifier:
+    """LLM classifier whose backend is unreachable — classify() raises. Models
+    the Cloud Run case where the keyless wiring built an Ollama-backed
+    classifier but no Ollama is reachable (ADR 0013 / ADR 0028)."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def classify(self, query: str) -> Category:
+        self.calls += 1
+        raise RuntimeError("classifier backend unreachable")
+
+
+@pytest.mark.asyncio
+async def test_classifier_failure_falls_back_to_regex_text() -> None:
+    """A failing classifier must not take down retrieval: fall back to the regex
+    classifier. A definitional query then routes text-only (ADR 0028)."""
+    classifier = _FailingClassifier()
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.5)])
+    router = RoutingRetriever(text=text, visual=visual, classifier=classifier)  # type: ignore[arg-type]
+
+    results = await router.retrieve(Query(text="What is exploration hacking?", top_k=5))
+
+    assert classifier.calls == 1  # attempted, then fell back
+    assert text.calls == 1
+    assert visual.calls == 0  # regex → definitional → text-only
+    assert [r.chunk_id for r in results] == ["paper1::p1::c0"]
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.category == "definitional"
+    assert info.path == "text"
+
+
+@pytest.mark.asyncio
+async def test_classifier_failure_regex_still_routes_figure_to_hybrid() -> None:
+    """Post-fallback the regex still routes correctly: a 'Figure N' query goes
+    hybrid, so both legs fire."""
+    classifier = _FailingClassifier()
+    text = _RecordingRetriever("text", [_text_chunk("paper1::p1::c0", 0.9)])
+    visual = _RecordingRetriever("visual", [_visual_page(2, 0.7)])
+    router = RoutingRetriever(text=text, visual=visual, classifier=classifier)  # type: ignore[arg-type]
+
+    await router.retrieve(Query(text="What does Figure 3 show?", top_k=5))
+
+    assert classifier.calls == 1
+    assert text.calls == 1
+    assert visual.calls == 1
+    info = get_last_routing_info()
+    assert info is not None
+    assert info.category == "figure"
+    assert info.path == "hybrid"
 
 
 @pytest.mark.asyncio

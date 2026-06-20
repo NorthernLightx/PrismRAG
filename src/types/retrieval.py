@@ -21,7 +21,7 @@ class Query(BaseModel):
     # Used by the eval harness ("run every query through hybrid for the
     # comparison") and for debugging. Not exposed in the public OpenAPI
     # schema (caveat §5 in ADR 0008).
-    force_route: Literal["text", "hybrid"] | None = None
+    force_route: Literal["text", "visual", "hybrid"] | None = None
     # ADR 0010: per-query routing-mode override. When None, the server's
     # configured mode is used. When set, RoutingRetriever switches dispatch
     # logic for this call only. Cascade dispatch falls back to a 0.85
@@ -67,7 +67,7 @@ class RoutingInfo(BaseModel):
     """
 
     mode: Literal["category", "cascade"]
-    path: Literal["text", "hybrid"]
+    path: Literal["text", "visual", "hybrid"]
     forced: bool = False
     category: str | None = None  # set only when mode=category
     cascade_decision: str | None = None  # set only when mode=cascade
