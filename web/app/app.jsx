@@ -32,15 +32,6 @@ function Sidebar({ tab, setTab, theme, setTheme, layout, setLayout, stats, open 
 
       <div className="sidebar-spacer"></div>
 
-      <div className="corpus-card">
-        <h4>Index</h4>
-        <div className="stat-row"><span className="k">Papers</span><span className="v">{stats.papers || "—"}</span></div>
-        <div className="stat-row"><span className="k">Figures</span><span className="v">{stats.figures || "—"}</span></div>
-        <hr className="divider" style={{ margin: "8px 0" }} />
-        <div className="stat-row"><span className="k">Text</span><span className="v idx">bge-m3</span></div>
-        <div className="stat-row"><span className="k">Embeddings</span><span className="v idx">1024-d</span></div>
-      </div>
-
       <div className="sidebar-foot">
         <div className="theme-toggle" role="group" aria-label="Theme">
           <button className={theme === "light" ? "on" : ""} onClick={() => setTheme("light")} title="Light"><Icon name="sun" size={14} /></button>
@@ -322,7 +313,6 @@ function App() {
             <Segmented value={layout} onChange={setLayout}
             options={[{ value: "split", label: "split" }, { value: "single", label: "focus" }]} />
             }
-            <span className="tag"><Icon name="layers" size={12} style={{ verticalAlign: -2, marginRight: 4 }} />1024-d embeddings</span>
           </div>
         </div>
 

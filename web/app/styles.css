@@ -62,7 +62,11 @@
 }
 
 * { box-sizing: border-box; }
-html, body { height: 100%; }
+/* The app shell never scrolls the document — every tab scrolls inside its own
+   container (`.view` is overflow:hidden; panels scroll via `.scroll-view > .content-pad` or `.chat-scroll`).
+   Without this, a tall inner grid (the Figures gallery) leaks its height to the
+   root scroller and you get a second, page-level scrollbar. */
+html, body { height: 100%; overflow: hidden; }
 body {
   margin: 0;
   background: var(--bg);

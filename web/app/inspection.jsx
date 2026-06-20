@@ -72,7 +72,7 @@ function InspectionView({ settings, papers, routingAvailable }) {
     try {
       const { results, routing } = await window.RAG.retrieve(v, {
         topK: settings.topk,
-        forceRoute: settings.route === "text" ? "text" : settings.route === "visual" ? "hybrid" : "",
+        forceRoute: ["text", "visual", "hybrid"].includes(settings.route) ? settings.route : "",
         routingMode: settings.routingMode || "",
         paperId: settings.paper || "",
         onStatus: setStatus,

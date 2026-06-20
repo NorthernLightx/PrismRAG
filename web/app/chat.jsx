@@ -36,6 +36,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
         <Segmented value={settings.route} onChange={(v) => set("route", v)}
           options={[{ value: "auto", label: "auto" }, { value: "text", label: "text" },
             { value: "visual", label: "visual", disabled: noRouter, disabledTitle: offTitle },
+            { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
             { value: "agentic", label: "agentic" }]} />
         {noRouter &&
         <span className="field-note">visual routing needs the GPU leg — off on this CPU deployment (offline: +35% recall over text-only); figure questions still work via page images</span>
@@ -81,7 +82,6 @@ function EmptyState({ onAsk, routingAvailable }) {
         {window.RAG.SUGGESTIONS.map((s, i) => (
           <button key={i} className="suggest" onClick={() => onAsk(s.q)}>
             <span className="q">{s.q}</span>
-            {!noRouter && <RoutePill route={s.route} />}
           </button>
         ))}
       </div>
@@ -198,12 +198,40 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   const relScore = (s) => (sMax === sMin ? 1 : (s - sMin) / (sMax - sMin));
   const vis = cands.filter((c) => c.kind === "visual");
   const total = cands.length;
-  const visShare = total ? Math.round((vis.length / total) * 100) : 0;
+  // Evidence-mix bars reflect what the answer CITED, not just what was
+  // retrieved. On a text route the model can still cite page images attached at
+  // generation, so a retrieval-only split falsely reads 100% text. Count cited
+  // modality (page_cite / fig_cite / visual candidates all carry kind "visual");
+  // fall back to the retrieved-candidate mix before any citations exist.
+  const cites = turn.citations || [];
+  const visCited = cites.filter((c) => c.kind === "visual").length;
+  const visShare = cites.length
+    ? Math.round((visCited / cites.length) * 100)
+    : total
+      ? Math.round((vis.length / total) * 100)
+      : 0;
   const txtShare = 100 - visShare;
   const citedNum = (c) => {
     const ct = (turn.citations || []).find((x) => x.id === c.chunk_id);
     return ct ? ct.n : null;
   };
+  // Page-image citations (`::page`) the model produced from the page images
+  // attached at generation. They aren't retrieval candidates, so they get no
+  // ranked row — surface them here so a cited [n] always resolves to something
+  // in the panel. Skip any whose id is already a candidate (hybrid route, where
+  // the visual leg retrieved the same page).
+  const citedPages = (turn.citations || []).filter(
+    (c) => c.page_cite && !cands.some((cd) => cd.chunk_id === c.id)
+  );
+  // Surface the candidates the answer actually cited at the top, then the rest.
+  // Each group keeps the retriever's existing rank order — which for a text-only
+  // result set is score DESC. We deliberately don't re-sort by raw `score`: text
+  // rerank logits and visual patch-sim are different scales, so a global sort
+  // would interleave the legs wrongly. The [n] badge is the citation's own number.
+  const orderedCands = [
+    ...cands.filter((c) => citedNum(c) != null),
+    ...cands.filter((c) => citedNum(c) == null),
+  ];
   return (
     <aside className="retr-panel">
       <div className="retr-head">
@@ -258,7 +286,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
 
         <div className="retr-section">
           <h4>Ranked candidates <span className="n">{total} chunks</span></h4>
-          {cands.map((c, i) => {
+          {orderedCands.map((c, i) => {
             const num = citedNum(c);
             const hl = highlight && num && String(num) === String(highlight);
             return (
@@ -279,6 +307,26 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
             );
           })}
         </div>
+
+        {citedPages.length > 0 && (
+          <div className="retr-section">
+            <h4>Page images cited <span className="n">{citedPages.length}</span></h4>
+            {citedPages.map((c, i) => (
+              <div key={c.id || i} className="cand row-clickable"
+                onClick={() => setPageItem({ chunk_id: c.id, paper: c.paper, page: c.page, pages: [c.page], kind: "visual", bbox: null, text: "", page_cite: true })}
+                title="View cited page image">
+                <div className="cand-top">
+                  <span className="cand-num visual">{c.n}</span>
+                  <span className="cand-src">{c.paper} · p.{c.page}</span>
+                  <span className="cand-score">page</span>
+                </div>
+                <div className="cand-meta">
+                  <span className="pin-note">the model read this whole page at generation; cited but not a ranked retrieval result</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         {vis.length > 0 && (
           <div className="retr-section">
@@ -407,7 +455,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
       const t0 = performance.now();
       const { results, routing, trace } = await window.RAG.retrieve(searchQuery, {
         topK: settings.topk,
-        forceRoute: settings.route === "text" ? "text" : settings.route === "visual" ? "hybrid" : "",
+        forceRoute: ["text", "visual", "hybrid"].includes(settings.route) ? settings.route : "",
         routingMode: settings.routingMode || "",
         paperId: settings.paper || "",
         dci: settings.route === "agentic",

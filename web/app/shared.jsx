@@ -52,7 +52,7 @@ function Icon({ name, size = 16, className = "", strokeWidth = 1.7, fill = false
 
 function RoutePill({ route }) {
   const cls = route === "visual" ? "visual" : route === "agentic" || route.includes("+") ? "mixed" : "text";
-  const label = route === "visual" ? "visual route" : route === "agentic" ? "agentic search" : route.includes("+") ? "text + visual" : "text route";
+  const label = route === "visual" ? "visual" : route === "agentic" ? "agentic search" : route.includes("+") ? "text + visual" : "text";
   return <span className={"pill " + cls}><span className="dot"></span>{label}</span>;
 }
 
@@ -235,7 +235,7 @@ function PageRegionModal({ item, onClose, paperTitle }) {
           <div className="pm-note">
             <Icon name={isVis ? "image" : "text"} size={13} />
             <span>{item.page_cite
-              ? "Cited as a page image: the model read this page directly when describing the figure, so the whole page is the evidence."
+              ? "Cited as a page image: the model read this page directly, so the whole page is the evidence."
               : isVis
               ? (hasBbox ? "Retrieved from the visual store over page images; the box marks the figure or table region on the source page." : "Retrieved from the visual store over page images.")
               : (hasBbox ? "Retrieved from the text store by the dense retriever; the box marks the cited passage on the page." : "Retrieved from the text store by the dense retriever. This chunk spans page boundaries, so no single region box is available.")}</span>
