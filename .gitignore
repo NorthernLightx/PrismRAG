@@ -122,14 +122,12 @@ tools/_mineru_out/
 # Local agent/workflow run artifacts.
 output/
 
-# Local debug scratch at repo root: screenshots, probe JSON dumps. Never deployed
-# (not in the Dockerfile COPY list).
+# Local debug scratch at repo root.
 /*.png
 /*.jpeg
 /.tmp_*.json
 /figs*.json
 /*_tmp.json
 qdrant_local_old/
-# GPU-built visual page index: a single ~479MB sqlite, over GitHub's 100MB file
-# cap. Baked into the deploy image at build time, not tracked (ADR 0028).
+# Too large to commit; baked into the image (ADR 0028).
 qdrant_local/collection/rag_corpus_visual/
