@@ -31,6 +31,8 @@ from src.rag.retrievers.routing import RoutingRetriever
 from src.rag.vectorstore import QdrantVectorStore
 
 if TYPE_CHECKING:
+    from qdrant_client import AsyncQdrantClient
+
     from src.rag.retrievers.classifier_llm import LLMQueryClassifier
 
 # Mirrors the layout `scripts/eval_run.py` writes / `Generator._collect_image_paths`
@@ -95,38 +97,65 @@ def _collect_pages_from_dir(pages_dir: Path) -> dict[str, list[tuple[int, Path]]
     return pages
 
 
-async def _build_visual_retriever_from_settings(settings: Settings) -> Retriever | None:
-    """Build the visual leg (ColQwen2 multivector index) when prerequisites
-    are met. Returns None on any failure path: no `pages_dir`, empty layout,
-    GPU/CPU OOM, missing colpali deps. The caller logs and falls back to
-    text-only routing (the strong baseline per ADR 0008).
+async def _build_visual_retriever_from_settings(
+    settings: Settings, *, client: AsyncQdrantClient | None = None
+) -> Retriever | None:
+    """Build the visual leg from the persisted ColQwen2 page index (ADR 0028).
 
-    Heavy import of ``torch`` / ``colpali_engine`` is deferred to keep the
-    text-only deploy path light.
+    Loads a ``QdrantVisualStore`` over ``settings.visual_collection`` and, when
+    it holds pages, a ``VisualRetriever`` that scores against it — encoding only
+    the query at serve time, with no startup page-encode. Returns None on any
+    failure path: an empty or absent collection, GPU/CPU OOM, missing colpali
+    deps. The caller logs and falls back to text-only routing (the strong
+    baseline per ADR 0008).
+
+    The store check is cheap and torch-free; the heavy ``torch`` /
+    ``colpali_engine`` import + model load is deferred until the collection is
+    known to hold pages, keeping the text-only deploy path light.
     """
     log = get_logger(__name__)
-    if settings.pages_dir is None:
-        log.info("api.multimodal.visual.skip_no_pages_dir")
+    from src.rag.visual_store import QdrantVisualStore
+
+    # Share the text store's client: embedded path-mode allows only one client
+    # per on-disk path, and the text leg already holds it open (ADR 0028).
+    store = QdrantVisualStore(
+        url=settings.qdrant_url, collection_name=settings.visual_collection, client=client
+    )
+    try:
+        n_pages = await store.count()
+    except Exception as exc:
+        log.warning(
+            "api.multimodal.visual.store_unavailable",
+            error=str(exc),
+            error_type=type(exc).__name__,
+            collection=settings.visual_collection,
+        )
         return None
-    pages_by_paper = _collect_pages_from_dir(settings.pages_dir)
-    if not pages_by_paper:
-        log.warning("api.multimodal.visual.skip_empty_layout", pages_dir=str(settings.pages_dir))
+    if n_pages == 0:
+        # Reaching here means enable_multimodal is on but the visual index is
+        # empty/absent (e.g. the index didn't ship in the image). Warn, don't
+        # whisper — the deploy silently degrades to text-only otherwise.
+        log.warning(
+            "api.multimodal.visual.skip_empty_collection",
+            collection=settings.visual_collection,
+            detail="multimodal enabled but visual index empty/absent; serving text-only",
+        )
         return None
     try:
         import torch
 
-        from src.rag.retrievers.visual import build_visual_retriever
+        from src.rag.retrievers.visual import VisualRetriever, load_visual_model
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        retriever = await build_visual_retriever(
-            pages_by_paper, model_name=settings.visual_model, device=device
-        )
+        model, processor = await load_visual_model(settings.visual_model, device)
+        retriever = VisualRetriever(model=model, processor=processor, store=store, device=device)
         log.info(
             "api.multimodal.visual.wired",
-            n_papers=len(pages_by_paper),
-            n_pages=sum(len(v) for v in pages_by_paper.values()),
+            backend="qdrant",
+            n_pages=n_pages,
             device=device,
             model=settings.visual_model,
+            collection=settings.visual_collection,
         )
         return retriever
     except Exception as exc:
@@ -268,7 +297,9 @@ async def _wire_retriever_from_settings(
 
     if settings.enable_multimodal:
         if visual_retriever is None:
-            visual_retriever = await _build_visual_retriever_from_settings(settings)
+            visual_retriever = await _build_visual_retriever_from_settings(
+                settings, client=vectorstore.client
+            )
         if classifier is None:
             classifier = _build_classifier_from_settings(settings)
         if visual_retriever is not None:
@@ -287,7 +318,7 @@ async def _wire_retriever_from_settings(
                 classifier="llm" if classifier is not None else "regex",
             )
             return True
-        log.info(
+        log.warning(
             "api.retriever.multimodal_degraded_to_text",
             reason="visual_leg_unavailable",
         )

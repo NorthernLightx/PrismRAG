@@ -19,13 +19,16 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import torch
 from PIL import Image
 
 from src.observability.logging import get_logger, timed_event
 from src.types import Query, RetrievalResult
+
+if TYPE_CHECKING:
+    from src.rag.visual_store import QdrantVisualStore
 
 _log = get_logger(__name__)
 
@@ -47,27 +50,49 @@ class VisualRetriever:
         *,
         model: Any,  # colpali ColQwen2; typed Any to keep colpali optional at import time
         processor: Any,
-        page_embeds: dict[str, torch.Tensor],
-        page_meta: dict[str, tuple[str, int]],
+        page_embeds: dict[str, torch.Tensor] | None = None,
+        page_meta: dict[str, tuple[str, int]] | None = None,
+        store: QdrantVisualStore | None = None,
         device: str = "cuda",
     ) -> None:
         self._model = model
         self._processor = processor
-        self._page_embeds = page_embeds
-        self._page_meta = page_meta
+        self._page_embeds = page_embeds or {}
+        self._page_meta = page_meta or {}
+        # When set, page vectors live in a persisted Qdrant multivector
+        # collection and scoring runs there (the deploy path); page_embeds is
+        # then empty. When None, scoring is in-memory over page_embeds (the
+        # offline/eval path). ADR 0028.
+        self._store = store
         self._device = device
 
     async def retrieve(self, query: Query) -> list[RetrievalResult]:
-        """Embed the query and rank all stored pages by MaxSim."""
+        """Embed the query and rank pages by MaxSim.
+
+        Two scoring backends: a persisted Qdrant multivector collection
+        (``self._store``, the deploy path) or the in-memory ``page_embeds``
+        (offline/eval). Either way only the query is embedded here — page
+        vectors were embedded ahead of time. ADR 0009 follow-up: the paper-id
+        filter from ``query.filters['paper_id']`` is honored on both backends.
+        """
+        paper_filter = query.paper_id_filter()
+
+        if self._store is not None:
+            with timed_event(
+                _log, "visual_retrieve.done", query=query.text, top_k=query.top_k, backend="qdrant"
+            ) as ctx:
+                query_vec = await asyncio.to_thread(self._embed_query, query.text)
+                hits = await self._store.search(query_vec, query.top_k, paper_filter=paper_filter)
+                ctx["paper_filter"] = paper_filter or ""
+                ctx["returned"] = len(hits)
+                ctx["top_chunk"] = hits[0].chunk_id if hits else None
+                return hits
+
         if not self._page_embeds:
             return []
 
-        # ADR 0009 follow-up: paper-id filter is honored if the caller passes
-        # one in `query.filters['paper_id']`. The visual leg's index is
-        # in-memory `page_meta[chunk_id] = (paper_id, page_no)`, so filtering
-        # is a dict-key check before scoring.
-        paper_filter = query.paper_id_filter()
-
+        # The in-memory index is `page_meta[chunk_id] = (paper_id, page_no)`,
+        # so the paper filter is a dict-key check before scoring.
         with timed_event(_log, "visual_retrieve.done", query=query.text, top_k=query.top_k) as ctx:
             scores = await asyncio.to_thread(self._score_query, query.text)
             if paper_filter is not None:
@@ -94,6 +119,14 @@ class VisualRetriever:
             ctx["top_chunk"] = results[0].chunk_id if results else None
             return results
 
+    def _encode_query(self, query: str) -> torch.Tensor:
+        """Embed a query string to its ``[1, n_q_tokens, dim]`` multivector.
+        Shared by the in-memory MaxSim path and the Qdrant store path."""
+        with torch.no_grad():
+            batch_q = self._processor.process_queries([query]).to(self._device)
+            embed: torch.Tensor = self._model(**batch_q)  # [1, n_q_tokens, dim]
+            return embed
+
     def _score_query(self, query: str) -> dict[str, float]:
         """Synchronous: embed query, score MaxSim against every page in one batched call.
 
@@ -104,18 +137,23 @@ class VisualRetriever:
         on the score function's masking — colpali-engine handles ragged inputs
         when given a list of tensors.
         """
+        query_embed = self._encode_query(query)
+        chunk_ids = list(self._page_embeds.keys())
+        page_tensors = [self._page_embeds[cid] for cid in chunk_ids]
         with torch.no_grad():
-            batch_q = self._processor.process_queries([query]).to(self._device)
-            query_embed = self._model(**batch_q)  # [1, n_q_tokens, dim]
-
-            chunk_ids = list(self._page_embeds.keys())
-            page_tensors = [self._page_embeds[cid] for cid in chunk_ids]
             # `score_multi_vector` accepts a list of [n_p, dim] tensors and
             # returns a [B_q, B_p] similarity matrix. One-shot; no Python loop.
             scores_matrix = self._processor.score_multi_vector(query_embed, page_tensors)
-            # query_embed batch dim = 1, so squeeze it; result is [B_p].
-            row = scores_matrix.squeeze(0).float().cpu()
-            return dict(zip(chunk_ids, row.tolist(), strict=True))
+        # query_embed batch dim = 1, so squeeze it; result is [B_p].
+        row = scores_matrix.squeeze(0).float().cpu()
+        return dict(zip(chunk_ids, row.tolist(), strict=True))
+
+    def _embed_query(self, query: str) -> list[list[float]]:
+        """Embed a query to its ``[n_q_tokens, dim]`` multivector as a list of
+        rows — the 2D query the Qdrant MAX_SIM comparator expects."""
+        squeezed: torch.Tensor = self._encode_query(query).squeeze(0).float().cpu()
+        rows: list[list[float]] = squeezed.tolist()
+        return rows
 
 
 def _select_col_classes(model_name: str) -> tuple[Any, Any]:
@@ -146,6 +184,26 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
     )
 
 
+async def load_visual_model(model_name: str, device: str) -> tuple[Any, Any]:
+    """Load a Col* model + processor (no page embedding).
+
+    Shared by the serve path — which encodes only the query against a persisted
+    Qdrant page index (ADR 0028) — and by ``build_visual_retriever``, which then
+    embeds pages in-process. bf16 on GPU; fp32 on CPU (bf16 matmuls are not
+    uniformly supported there).
+    """
+    model_cls, processor_cls = _select_col_classes(model_name)
+    dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
+
+    def _load() -> tuple[Any, Any]:
+        m = model_cls.from_pretrained(model_name, torch_dtype=dtype, device_map=device)
+        m.train(False)  # set inference mode
+        p = processor_cls.from_pretrained(model_name)
+        return m, p
+
+    return await asyncio.to_thread(_load)
+
+
 async def build_visual_retriever(
     pages_by_paper: dict[str, list[tuple[int, Path]]],
     *,
@@ -163,16 +221,7 @@ async def build_visual_retriever(
     Windows desktop compositor + Ollama runtime holding ~3 GB, the bigger
     model OOMs. Pass `--model vidore/colqwen2.5-v0.2` on a roomier GPU.
     """
-    model_cls, processor_cls = _select_col_classes(model_name)
-    dtype = torch.bfloat16 if device.startswith("cuda") else torch.float32
-
-    def _load() -> tuple[Any, Any]:
-        m = model_cls.from_pretrained(model_name, torch_dtype=dtype, device_map=device)
-        m.train(False)  # set inference mode
-        p = processor_cls.from_pretrained(model_name)
-        return m, p
-
-    model, processor = await asyncio.to_thread(_load)
+    model, processor = await load_visual_model(model_name, device)
 
     page_embeds: dict[str, torch.Tensor] = {}
     page_meta: dict[str, tuple[str, int]] = {}

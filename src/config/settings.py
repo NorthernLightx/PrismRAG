@@ -208,6 +208,12 @@ class Settings(BaseSettings):
     # the API still boots — the retriever stays unwired and /answer returns
     # 503 until a corpus is ingested.
     corpus_collection: str = "rag_corpus"
+    # ADR 0028: multivector collection holding the persisted ColQwen2 page index
+    # (scripts/build_visual_index.py), in the same embedded Qdrant as
+    # corpus_collection. The serve path loads these vectors instead of
+    # re-encoding pages at startup; empty or absent => the visual leg is
+    # unavailable and routing degrades to text-only.
+    visual_collection: str = "rag_corpus_visual"
     postgres_dsn: str = "postgresql+psycopg://rag:rag@localhost:5432/rag"
     langfuse_host: str = "http://localhost:3000"
 

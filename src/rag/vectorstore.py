@@ -99,6 +99,12 @@ class QdrantVectorStore:
         else:
             self._client = AsyncQdrantClient(url=url)
 
+    @property
+    def client(self) -> AsyncQdrantClient:
+        """The underlying async client. The visual store shares it under embedded
+        path-mode, where only one client may hold a given on-disk path."""
+        return self._client
+
     async def ensure_collection(self) -> None:
         existing = await self._client.get_collections()
         if any(c.name == self._collection for c in existing.collections):
