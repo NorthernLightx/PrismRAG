@@ -35,6 +35,7 @@ import argparse
 import asyncio
 import os
 import shutil
+from collections.abc import Awaitable, Callable
 from pathlib import Path
 
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
@@ -44,6 +45,33 @@ from src.observability.logging import configure_logging, get_logger
 from src.rag.bm25 import Bm25Index
 from src.rag.vectorstore import QdrantVectorStore
 from src.types import Paper
+
+
+async def _ingest_each(
+    pdf_paths: list[Path],
+    ingest_one: Callable[[Path], Awaitable[int]],
+) -> tuple[int, list[str]]:
+    """Ingest each PDF via ``ingest_one``; return ``(total_chunks, skipped_names)``.
+
+    One file failing (corrupt/encrypted PDF, extractor error) skips that file
+    with a warning and continues, so a single bad document in a real folder does
+    not abort the whole batch. With ``--force`` the collection was already
+    dropped before this runs, so aborting partway would otherwise leave it empty.
+    """
+    log = get_logger("scripts.bootstrap_corpus")
+    total = 0
+    skipped: list[str] = []
+    for pdf_path in pdf_paths:
+        try:
+            count = await ingest_one(pdf_path)
+        except Exception as exc:  # batch resilience: one bad PDF must not abort the rest
+            skipped.append(pdf_path.name)
+            print(f"  {pdf_path.name}: SKIPPED ({type(exc).__name__}: {exc})")
+            log.warning("bootstrap.skip_pdf", pdf=pdf_path.name, error=str(exc))
+            continue
+        total += count
+        print(f"  {pdf_path.name}: {count} chunks")
+    return total, skipped
 
 
 async def _main(
@@ -110,8 +138,7 @@ async def _main(
             vlm_captioner = OllamaVisionCaptioner(base_url=ollama_url, model=vlm_caption_model)
             print(f"VLM captioning enabled via Ollama model {vlm_caption_model!r}")
 
-    total_chunks = 0
-    for pdf_path in pdf_paths:
+    async def _ingest_one(pdf_path: Path) -> int:
         paper = Paper(paper_id=pdf_path.stem, title=pdf_path.stem, pdf_path=pdf_path)
         ingested = await ingest_paper(
             paper=paper,
@@ -125,18 +152,23 @@ async def _main(
             extract_tables_enabled=extract_tables,
             vlm_captioner=vlm_captioner,
         )
-        total_chunks += ingested.chunk_count
-        print(f"  {pdf_path.name}: {ingested.chunk_count} chunks")
+        return ingested.chunk_count
+
+    total_chunks, skipped = await _ingest_each(pdf_paths, _ingest_one)
 
     final = await vectorstore.count()
-    print(
-        f"\nIngested {total_chunks} chunks across {len(pdf_paths)} papers into "
-        f"{collection!r} (collection now contains {final} points)"
+    summary = (
+        f"\nIngested {total_chunks} chunks across {len(pdf_paths) - len(skipped)} papers "
+        f"into {collection!r} (collection now contains {final} points)"
     )
+    if skipped:
+        summary += f"; skipped {len(skipped)} unreadable: {', '.join(skipped)}"
+    print(summary)
     log.info(
         "bootstrap.done",
         collection=collection,
-        papers=len(pdf_paths),
+        papers=len(pdf_paths) - len(skipped),
+        skipped=len(skipped),
         chunks_ingested=total_chunks,
         collection_size=final,
     )
