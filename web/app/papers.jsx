@@ -114,7 +114,12 @@ function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
   }, [figures]);
 
   if (!papers || papers.length === 0) {
-    return <div className="scroll-view"><div className="content-pad"><div className="retr-empty">Loading papers… If this doesn't resolve, the server may be unreachable or no corpus is indexed.</div></div></div>;
+    return (
+      <div className="scroll-view"><div className="content-pad">
+        <div className="retr-empty">Loading papers… If this doesn't resolve, the server may be unreachable or no corpus is indexed.</div>
+        {uploadAvailable && <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}><UploadControl onUploaded={onUploaded} /></div>}
+      </div></div>
+    );
   }
 
   // Only offer source filters when the corpus actually mixes sources — a
