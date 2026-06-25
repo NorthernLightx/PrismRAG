@@ -27,6 +27,10 @@ def _serve(ns: argparse.Namespace) -> int:
     # fills these when the user hasn't set them via the shell or .env.
     os.environ.setdefault("RAG_EMBEDDER_BACKEND", "sentence_transformers")
     os.environ.setdefault("RAG_QDRANT_URL", "path:./qdrant_local")
+    # bge-reranker-v2-m3 (the default) reranks the candidate pool in minutes per
+    # query on CPU; the small MiniLM cross-encoder the Cloud Run image uses is
+    # CPU-feasible and non-inferior on the eval sets (ADR 0012).
+    os.environ.setdefault("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     if os.path.isdir("data/pages"):
         os.environ.setdefault("RAG_PAGES_DIR", "data/pages")
 

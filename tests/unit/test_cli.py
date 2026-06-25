@@ -9,7 +9,7 @@ from src.cli import main
 
 
 def test_serve_sets_self_contained_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
-    for var in ("RAG_EMBEDDER_BACKEND", "RAG_QDRANT_URL", "RAG_PAGES_DIR"):
+    for var in ("RAG_EMBEDDER_BACKEND", "RAG_QDRANT_URL", "RAG_PAGES_DIR", "RAG_RERANKER_MODEL"):
         monkeypatch.delenv(var, raising=False)
     with mock.patch("uvicorn.run") as run:
         rc = main(["serve", "--port", "9000"])
@@ -19,6 +19,7 @@ def test_serve_sets_self_contained_defaults(monkeypatch: pytest.MonkeyPatch) -> 
     assert run.call_args.kwargs["port"] == 9000
     assert os.environ["RAG_EMBEDDER_BACKEND"] == "sentence_transformers"
     assert os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local"
+    assert os.environ["RAG_RERANKER_MODEL"] == "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 
 def test_serve_respects_user_env(monkeypatch: pytest.MonkeyPatch) -> None:
