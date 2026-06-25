@@ -41,4 +41,7 @@ def health(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
         # are no-ops; the UI greys those controls out instead of letting them
         # silently do nothing.
         "routing_available": isinstance(peek_retriever(), RoutingRetriever),
+        # Whether POST /ingest accepts uploads (ADR 0029). The Papers tab shows
+        # its "Add PDF" control only when this is true.
+        "upload_available": settings.enable_upload,
     }

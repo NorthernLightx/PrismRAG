@@ -244,6 +244,7 @@ function App() {
   const [pagesAvailable, setPagesAvailable] = useState(false);
   const [demoAvailable, setDemoAvailable] = useState(false);
   const [routingAvailable, setRoutingAvailable] = useState(true);
+  const [uploadAvailable, setUploadAvailable] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
 
   const setTheme = (th) => {setThemeRaw(th);localStorage.setItem("sr-theme", th);};
@@ -265,7 +266,7 @@ function App() {
     // routing_available must be POSITIVELY confirmed — a failed /health (or
     // an older server without the field) should not leave routing controls
     // offered on a deployment that can't honor them.
-    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); setRoutingAvailable(h.routing_available === true); });
+    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); setRoutingAvailable(h.routing_available === true); setUploadAvailable(!!h.upload_available); });
   }, []);
 
   // apply tweaks → CSS
@@ -293,6 +294,8 @@ function App() {
   const stats = { papers: papers.length, figures: figures ? figures.length : 0 };
   // Tapping a nav item also dismisses the mobile drawer.
   const selectTab = (id) => { setTab(id); setNavOpen(false); };
+  // Re-fetch the corpus after an upload so the new paper + figures appear.
+  const reloadCorpus = () => { window.RAG.loadPapers().then(setPapers); window.RAG.loadFigures().then(setFigures); };
 
   return (
     <div className="app">
@@ -324,7 +327,7 @@ function App() {
             <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />
           </div>
           {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} />}
-          {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} />}
+          {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} uploadAvailable={uploadAvailable} onUploaded={reloadCorpus} />}
           {tab === "figures" && <FiguresView figures={figures} />}
           {tab === "why" && <WhyView setTab={setTab} routingAvailable={routingAvailable} />}
         </div>

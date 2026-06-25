@@ -492,6 +492,19 @@
     return "text";
   }
 
+  // Upload a PDF into the local corpus (POST /ingest, ADR 0029). Multipart
+  // form-data. 403 when RAG_ENABLE_UPLOAD is off (the public demo); the Papers
+  // tab hides the control via the upload_available health flag.
+  async function ingestPdf(file) {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/ingest", { method: "POST", body: form });
+    if (!res.ok) {
+      throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
+    }
+    return res.json(); // { paper_id, chunks_added, corpus_chunks }
+  }
+
   window.RAG = {
     MODELS,
     SUGGESTIONS,
@@ -500,6 +513,7 @@
     loadPapers,
     loadHealth,
     loadFigures,
+    ingestPdf,
     retrieve,
     condense,
     condenseDemo,

@@ -73,7 +73,36 @@ function PaperDrawer({ p, figs, onClose }) {
   );
 }
 
-function PapersView({ setTab, papers, figures }) {
+function UploadControl({ onUploaded }) {
+  const inputRef = useRef();
+  const [status, setStatus] = useState(null);
+  const onPick = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setStatus({ kind: "busy", msg: `Ingesting ${file.name}…` });
+    try {
+      const r = await window.RAG.ingestPdf(file);
+      setStatus({ kind: "ok", msg: `Added ${r.paper_id} · ${r.chunks_added} chunks` });
+      onUploaded && onUploaded();
+    } catch (err) {
+      setStatus({ kind: "err", msg: String((err && err.message) || err) });
+    }
+  };
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <input ref={inputRef} type="file" accept="application/pdf,.pdf" style={{ display: "none" }} onChange={onPick} />
+      <button className="btn primary sm" disabled={status && status.kind === "busy"}
+        onClick={() => inputRef.current && inputRef.current.click()}>
+        {status && status.kind === "busy" ? "Ingesting…" : "+ Add PDF"}
+      </button>
+      {status && status.kind !== "busy" &&
+        <span className="mono" style={{ fontSize: 12, color: status.kind === "ok" ? "var(--accent)" : "#e5484d" }}>{status.msg}</span>}
+    </div>
+  );
+}
+
+function PapersView({ setTab, papers, figures, uploadAvailable, onUploaded }) {
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState("all");
   const [open, setOpen] = useState(null);
@@ -110,6 +139,7 @@ function PapersView({ setTab, papers, figures }) {
           ))}
         </div>
         <span className="result-count mono">{filtered.length} / {papers.length}</span>
+        {uploadAvailable && <UploadControl onUploaded={onUploaded} />}
       </div>
       <div className="content-pad">
         <div className="paper-grid">
