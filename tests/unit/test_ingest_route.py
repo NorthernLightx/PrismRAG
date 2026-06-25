@@ -30,6 +30,13 @@ def test_ingest_rejects_non_pdf() -> None:
     assert resp.status_code == 400
 
 
+def test_ingest_rejects_empty_upload() -> None:
+    resp = _app(enable_upload=True).post(
+        "/ingest", files={"file": ("x.pdf", b"", "application/pdf")}
+    )
+    assert resp.status_code == 400
+
+
 def test_ingest_happy_path_appends_chunks(monkeypatch: pytest.MonkeyPatch) -> None:
     client = _app(enable_upload=True)
     chunks: dict[str, object] = {}

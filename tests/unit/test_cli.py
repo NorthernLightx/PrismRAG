@@ -62,6 +62,23 @@ def test_fetch_invokes_fetch_papers(monkeypatch: pytest.MonkeyPatch) -> None:
     assert "m.txt" in args
 
 
+def test_ingest_invokes_bootstrap(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured: list[tuple[str, list[str]]] = []
+
+    def fake_run(module: str, args: list[str]) -> int:
+        captured.append((module, args))
+        return 0
+
+    monkeypatch.setattr("src.cli._run_module", fake_run)
+    rc = main(["ingest", "--pdf-dir", "mydocs", "--collection", "c1", "--force"])
+    assert rc == 0
+    module, args = captured[0]
+    assert module == "scripts.bootstrap_corpus"
+    assert "--pdf-dir" in args and "mydocs" in args
+    assert "--collection" in args and "c1" in args
+    assert "--force" in args
+
+
 def test_no_subcommand_errors() -> None:
     with pytest.raises(SystemExit):
         main([])
