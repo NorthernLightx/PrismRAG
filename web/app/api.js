@@ -500,7 +500,9 @@
     form.append("file", file);
     const res = await fetch("/ingest", { method: "POST", body: form });
     if (!res.ok) {
-      throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
+      let detail = await res.text();
+      try { detail = JSON.parse(detail).detail || detail; } catch { /* keep raw text */ }
+      throw new Error(detail);
     }
     return res.json(); // { paper_id, chunks_added, corpus_chunks }
   }
