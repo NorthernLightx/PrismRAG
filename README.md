@@ -88,10 +88,25 @@ flowchart LR
 
 ## Quickstart
 
+Fastest path: serve the bundled demo corpus self-contained, with no Docker or
+Ollama (in-process bge-m3 + the committed Qdrant snapshot). The first run
+downloads the bge-m3 weights.
+
 ```bash
 git clone https://github.com/NorthernLightx/spectrarag
 cd spectrarag
 uv sync --extra dev
+uv run spectrarag serve
+```
+
+Open <http://localhost:8000/> and query the 20-paper demo corpus (text
+retrieval; set `RAG_ENABLE_MULTIMODAL=true` to also run the visual router over
+the committed page index). For your own PDFs, see
+[Bring your own PDFs](#bring-your-own-pdfs).
+
+For the full local stack (Docker Qdrant + Ollama, plus ingesting your own PDFs):
+
+```bash
 cp .env.example .env
 docker compose up -d qdrant ollama
 docker exec rag-ollama ollama pull bge-m3
