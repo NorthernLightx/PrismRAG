@@ -29,6 +29,22 @@ def test_serve_respects_user_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert os.environ["RAG_EMBEDDER_BACKEND"] == "ollama"
 
 
+def test_serve_overrides_docker_default_qdrant(monkeypatch: pytest.MonkeyPatch) -> None:
+    # .env.example ships the docker default; the self-contained serve must still
+    # use the embedded snapshot rather than a Qdrant server that isn't running.
+    monkeypatch.setenv("RAG_QDRANT_URL", "http://localhost:6333")
+    with mock.patch("uvicorn.run"):
+        main(["serve"])
+    assert os.environ["RAG_QDRANT_URL"] == "path:./qdrant_local"
+
+
+def test_serve_respects_custom_qdrant(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RAG_QDRANT_URL", "http://my-qdrant:6333")
+    with mock.patch("uvicorn.run"):
+        main(["serve"])
+    assert os.environ["RAG_QDRANT_URL"] == "http://my-qdrant:6333"
+
+
 def test_fetch_invokes_fetch_papers(monkeypatch: pytest.MonkeyPatch) -> None:
     captured: list[tuple[str, list[str]]] = []
 

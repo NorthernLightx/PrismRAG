@@ -26,7 +26,14 @@ def _serve(ns: argparse.Namespace) -> int:
     # the committed embedded Qdrant snapshot (no Qdrant server). setdefault only
     # fills these when the user hasn't set them via the shell or .env.
     os.environ.setdefault("RAG_EMBEDDER_BACKEND", "sentence_transformers")
-    os.environ.setdefault("RAG_QDRANT_URL", "path:./qdrant_local")
+    # `.env` (copied from `.env.example`) ships RAG_QDRANT_URL=http://localhost:6333,
+    # the docker-compose default, and `src/__init__` loads it before this runs.
+    # That would point the self-contained serve at a Qdrant server that isn't up,
+    # so treat the docker default as "unset" and use the embedded snapshot; a
+    # genuinely custom URL (a real server the user runs) is left untouched.
+    _docker_qdrant = "http://localhost:6333"
+    if os.environ.get("RAG_QDRANT_URL", _docker_qdrant) == _docker_qdrant:
+        os.environ["RAG_QDRANT_URL"] = "path:./qdrant_local"
     # bge-reranker-v2-m3 (the default) reranks the candidate pool in minutes per
     # query on CPU; the small MiniLM cross-encoder the Cloud Run image uses is
     # CPU-feasible and non-inferior on the eval sets (ADR 0012).
