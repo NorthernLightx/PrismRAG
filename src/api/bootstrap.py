@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from src.api.deps import set_chunks, set_generator, set_retriever
+from src.api.deps import set_chunks, set_corpus_handles, set_generator, set_retriever
 from src.config.settings import Settings
 from src.embeddings.ollama_bge import OllamaBgeEmbedder
 from src.embeddings.protocol import Embedder
@@ -279,6 +279,9 @@ async def _wire_retriever_from_settings(
     bm25.add(chunks)
     chunks_by_id = {c.chunk_id: c for c in chunks}
     set_chunks(chunks_by_id)
+    # ADR 0029: expose the live index objects so POST /ingest can append a
+    # document at runtime through the same embedder / store / bm25.
+    set_corpus_handles(embedder, vectorstore, bm25)
     text_retriever = PipelineRetriever(
         embedder=embedder,
         vectorstore=vectorstore,

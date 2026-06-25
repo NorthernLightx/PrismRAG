@@ -101,6 +101,10 @@ class Settings(BaseSettings):
     # the route needs an OpenRouter key (the server's, or the caller's per-request).
     enable_dci: bool = False
     dci_model: str = "qwen/qwen3-235b-a22b-2507"
+    # ADR 0029: opt-in runtime document upload at POST /ingest. Off by default so
+    # the public demo keeps its baked corpus with no upload surface; set
+    # RAG_ENABLE_UPLOAD=true on a local or trusted deploy to append PDFs at runtime.
+    enable_upload: bool = False
     # Optional override for the LLM classifier model. When `enable_multimodal`
     # is on AND `openrouter_api_key` is set, RoutingRetriever uses the LLM
     # classifier (one cheap per-query LLM call) instead of ADR 0008's regex. The LLM

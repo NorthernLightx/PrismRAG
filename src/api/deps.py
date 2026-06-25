@@ -7,9 +7,12 @@ from functools import lru_cache
 from fastapi import HTTPException, status
 
 from src.config.settings import Settings, load_settings
+from src.embeddings.protocol import Embedder
 from src.observability.langfuse import LangfuseLike
+from src.rag.bm25 import Bm25Index
 from src.rag.generate import Generator
 from src.rag.retrievers.protocol import Retriever
+from src.rag.vectorstore import QdrantVectorStore
 from src.types import Chunk
 
 
@@ -95,3 +98,34 @@ def get_chunks() -> dict[str, Chunk]:
 
 def set_chunks(chunks: dict[str, Chunk]) -> None:
     _ChunksState.instance = chunks
+
+
+class _CorpusHandles:
+    """Live retrieval-index handles, set at wiring. ``POST /ingest`` (ADR 0029)
+    appends a document at runtime through these same objects (the Bm25Index +
+    Qdrant store + embedder the wired retriever reads), so an upsert is visible
+    to /query without a restart."""
+
+    embedder: Embedder | None = None
+    vectorstore: QdrantVectorStore | None = None
+    bm25: Bm25Index | None = None
+
+
+def set_corpus_handles(embedder: Embedder, vectorstore: QdrantVectorStore, bm25: Bm25Index) -> None:
+    _CorpusHandles.embedder = embedder
+    _CorpusHandles.vectorstore = vectorstore
+    _CorpusHandles.bm25 = bm25
+
+
+def get_corpus_handles() -> tuple[Embedder, QdrantVectorStore, Bm25Index]:
+    """Return the live (embedder, vectorstore, bm25) handles, or raise 503."""
+    if (
+        _CorpusHandles.embedder is None
+        or _CorpusHandles.vectorstore is None
+        or _CorpusHandles.bm25 is None
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Corpus not loaded. Ingest a corpus before uploading documents.",
+        )
+    return _CorpusHandles.embedder, _CorpusHandles.vectorstore, _CorpusHandles.bm25
