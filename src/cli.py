@@ -71,24 +71,28 @@ def _build_parser() -> argparse.ArgumentParser:
     serve = sub.add_parser(
         "serve", help="Run the API self-contained (in-process bge-m3 + embedded Qdrant)."
     )
-    serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8000)
+    serve.add_argument("--host", default="127.0.0.1", help="Bind address.")
+    serve.add_argument("--port", type=int, default=8000, help="Port to listen on.")
     serve.add_argument("--reload", action="store_true", help="Auto-reload on code changes (dev).")
     serve.set_defaults(func=_serve)
 
     ingest = sub.add_parser(
         "ingest", help="Ingest a folder of PDFs into a collection (needs Ollama for bge-m3)."
     )
-    ingest.add_argument("--pdf-dir", default="data/papers")
-    ingest.add_argument("--collection", default="rag_corpus")
+    ingest.add_argument("--pdf-dir", default="data/papers", help="Folder of PDFs to ingest.")
+    ingest.add_argument("--collection", default="rag_corpus", help="Target Qdrant collection name.")
     ingest.add_argument(
         "--force", action="store_true", help="Re-ingest into a non-empty collection."
     )
     ingest.set_defaults(func=_ingest)
 
     fetch = sub.add_parser("fetch", help="Download demo-corpus PDFs from a manifest of arXiv IDs.")
-    fetch.add_argument("--manifest", default="data/curated_demo/papers.txt")
-    fetch.add_argument("--out-dir", default="data/papers")
+    fetch.add_argument(
+        "--manifest", default="data/curated_demo/papers.txt", help="Manifest of arXiv IDs to fetch."
+    )
+    fetch.add_argument(
+        "--out-dir", default="data/papers", help="Where to save the downloaded PDFs."
+    )
     fetch.set_defaults(func=_fetch)
 
     return parser
