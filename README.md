@@ -241,7 +241,9 @@ the model.
   off the reading bottleneck here, so it ships as an experimental opt-in, not a
   default (ADR [0026](./docs/decisions/)).
 
-Full methodology in [`docs/results.md`](./docs/results.md).
+Full methodology in [`docs/results.md`](./docs/results.md). For how SpectraRAG
+compares to other document-RAG tools, see
+[`docs/comparison.md`](./docs/comparison.md).
 
 ## Limitations
 
