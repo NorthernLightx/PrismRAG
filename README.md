@@ -217,9 +217,13 @@ Full methodology in [`docs/results.md`](./docs/results.md).
 
 ## Limitations
 
-- **The visual leg needs a CUDA GPU.** The hosted demo is CPU-only on Cloud
-  Run, so visual *retrieval* is off there and only the text leg runs. The
-  full routing behaviour and the result above are the local GPU path.
+- **Visual routing is live, but the demo corpus is text-heavy.** The hosted
+  demo now serves the full router from a pre-built ColQwen2 page index on the
+  CPU box (ADR [0028](./docs/decisions/)), so figure and table routing work
+  there; the visual leg used to be off on CPU. The baked 20-paper arXiv corpus
+  is text-heavy, so the visual lift on it is small: the +35 % above is the
+  MMLongBench result, not what a query against these papers will show. Building
+  the page index needs a CUDA GPU; serving it runs on CPU.
 - **Generation is browser-side.** A public, unauthenticated endpoint
   shouldn't carry a shared LLM key, so server-side `/answer` returns 503 on
   the demo and generation runs through the browser with the visitor's own
