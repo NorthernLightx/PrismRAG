@@ -29,6 +29,9 @@ objects the wired retriever already reads, so the change is visible immediately:
 2. **Flag-gated off by default.** `Settings.enable_upload` (`RAG_ENABLE_UPLOAD`)
    defaults False. The public Cloud Run demo leaves it unset, so the route 403s
    and the baked-corpus, no-abuse posture is unchanged. Local users opt in.
+   Enabling it on anything networked should be paired with `RAG_PUBLIC_API_KEY`:
+   the route carries no auth or rate limit of its own, and the Docling parse runs
+   synchronously, so a crafted PDF could stall a shared single-instance deploy.
 3. **Text leg only.** The visual leg needs a GPU-built ColQwen2 page index
    (ADR 0028) that can't be produced on the CPU demo box, so an uploaded
    document is text-retrievable but not part of the visual index. Routing still

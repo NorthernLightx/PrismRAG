@@ -52,3 +52,23 @@ def test_ingest_happy_path_appends_chunks(monkeypatch: pytest.MonkeyPatch) -> No
     assert body["paper_id"] == "mydoc"
     assert body["chunks_added"] == 2
     assert len(chunks) == 2
+
+
+def test_ingest_parse_failure_returns_generic_message(monkeypatch: pytest.MonkeyPatch) -> None:
+    client = _app(enable_upload=True)
+
+    async def fake_ingest(**kwargs: object) -> mock.Mock:
+        raise ValueError("internal detail C:/secret/path")
+
+    monkeypatch.setattr(
+        "src.api.routes.ingest.get_corpus_handles",
+        lambda: (mock.Mock(), mock.Mock(), mock.Mock()),
+    )
+    monkeypatch.setattr("src.api.routes.ingest.get_chunks", lambda: {})
+    monkeypatch.setattr("src.api.routes.ingest.ingest_paper", fake_ingest)
+
+    resp = client.post("/ingest", files={"file": ("x.pdf", b"%PDF bad", "application/pdf")})
+
+    assert resp.status_code == 422
+    assert "internal detail" not in resp.text  # no exception/path leakage to the client
+    assert "Could not parse" in resp.text

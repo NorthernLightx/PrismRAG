@@ -6,7 +6,7 @@ import re
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from pydantic import BaseModel
 
 from src.api.deps import get_chunks, get_corpus_handles, get_settings
@@ -32,7 +32,9 @@ class IngestResult(BaseModel):
 
 
 @router.post("/ingest", response_model=IngestResult)
-async def ingest(file: UploadFile, settings: Settings = Depends(get_settings)) -> IngestResult:
+async def ingest(
+    file: UploadFile, request: Request, settings: Settings = Depends(get_settings)
+) -> IngestResult:
     if not settings.enable_upload:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -42,6 +44,14 @@ async def ingest(file: UploadFile, settings: Settings = Depends(get_settings)) -
     if not filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Only .pdf uploads are supported."
+        )
+    # Reject an oversize upload on its declared length before reading the body
+    # into memory; the post-read check still bounds an absent/lying header.
+    declared = request.headers.get("content-length")
+    if declared is not None and declared.isdigit() and int(declared) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"PDF exceeds the {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB upload cap.",
         )
     data = await file.read()
     if not data:
@@ -79,7 +89,7 @@ async def ingest(file: UploadFile, settings: Settings = Depends(get_settings)) -
             )
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail=f"Could not parse {filename!r}: {exc}",
+                detail="Could not parse the uploaded PDF.",
             ) from exc
 
     for chunk in result.chunks:

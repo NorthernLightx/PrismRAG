@@ -169,7 +169,9 @@ against any collection; write a golden set at `data/golden/<name>.yaml`.
 For a single document, set `RAG_ENABLE_UPLOAD=true` and use the Papers tab's
 **Add PDF** button (or `POST /ingest`): the PDF is ingested into the live corpus
 and text-retrievable on the next query, no restart (ADR
-[0029](./docs/decisions/)). The flag stays off on the hosted demo.
+[0029](./docs/decisions/)). The flag stays off on the hosted demo; enable it only
+on a local or API-key-gated deploy — the route carries no auth or rate limit of
+its own.
 
 The visual leg needs a CUDA GPU to *build* the page index (ColQwen2-v1.0 fits
 an 8 GB card); serving it then runs on CPU. Build the persisted index and point
