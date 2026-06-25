@@ -58,7 +58,7 @@ aggressively to the visual leg. On a text-heavy corpus the lift is smaller. Full
 ```mermaid
 flowchart LR
     PDF[PDFs] -->|Docling ingest| TXTIDX[(Qdrant + BM25<br/>text/figure/table chunks)]
-    PDF -->|render pages| VISIDX[(In-memory<br/>ColQwen2<br/>page multi-vectors)]
+    PDF -->|build page index| VISIDX[(Qdrant<br/>ColQwen2<br/>page multi-vectors)]
     Q[User query] --> CLF{Classifier}
     CLF --> TXT[Text leg<br/>BM25 + BGE-M3 + rerank]
     CLF -->|hybrid route| VIS[Visual leg<br/>ColQwen2 MaxSim]
@@ -75,7 +75,7 @@ flowchart LR
    page decoration. Text, figure, and table chunks are indexed
    twice: BGE-M3 dense vectors in Qdrant and a BM25 sparse index in process.
    Pages are rendered to PNG, and ColQwen2 embeds each page into a
-   multi-vector tensor held in memory.
+   multi-vector page index persisted in Qdrant (built offline; ADR 0028).
 2. **Classify.** A per-query classifier routes to text-only or text+visual.
    The default is an LLM zero-shot classifier (`gemma3:4b` over Ollama, no
    API key); a regex classifier is the fallback.
@@ -93,9 +93,11 @@ git clone https://github.com/NorthernLightx/spectrarag
 cd spectrarag
 uv sync --extra dev
 cp .env.example .env
-docker compose up -d qdrant postgres langfuse ollama
+docker compose up -d qdrant ollama
 docker exec rag-ollama ollama pull bge-m3
 
+# fetch the demo corpus (20 arXiv papers from the committed manifest), then ingest
+uv run python -m scripts.fetch_papers --manifest data/curated_demo/papers.txt
 uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
 ```
@@ -149,15 +151,19 @@ Set `RAG_CORPUS_COLLECTION=my_corpus` in `.env`, restart `uvicorn`, and the
 corpus is queryable through `/query` and the UI. The eval harness works
 against any collection; write a golden set at `data/golden/<name>.yaml`.
 
-The visual leg needs a CUDA GPU (ColQwen2-v1.0 fits an 8 GB card). Render
-pages and enable it:
+The visual leg needs a CUDA GPU to *build* the page index (ColQwen2-v1.0 fits
+an 8 GB card); serving it then runs on CPU. Build the persisted index and point
+the app at it:
 
 ```bash
-uv run python -m scripts.render_pages --pdf-dir ./mydocs --out-dir data/pages
+uv run python -m scripts.build_visual_index --pdf-dir ./mydocs \
+    --qdrant http://localhost:6333 \
+    --corpus-collection my_corpus --collection my_corpus_visual
 ```
 
 ```
 RAG_ENABLE_MULTIMODAL=true
+RAG_VISUAL_COLLECTION=my_corpus_visual
 RAG_PAGES_DIR=data/pages
 ```
 
