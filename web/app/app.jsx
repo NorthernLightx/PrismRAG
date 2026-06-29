@@ -8,7 +8,7 @@ const NAV = [
 { id: "why", label: "Why multimodal?", icon: "why" }];
 
 
-function Sidebar({ tab, setTab, theme, setTheme, layout, setLayout, stats, open }) {
+function Sidebar({ tab, setTab, theme, setTheme, stats, open }) {
   return (
     <aside className={"sidebar" + (open ? " open" : "")}>
       <div className="brand">
@@ -68,8 +68,7 @@ function hexToRgba(hex, a) {
 const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
   "accent": "#3b82f6",
   "density": "regular",
-  "answerFont": "sans",
-  "defaultLayout": "split"
+  "answerFont": "sans"
 } /*EDITMODE-END*/;
 
 /* Two top-bar pills: model picker and key entry. Separate menus, because
@@ -231,7 +230,6 @@ function App() {
     const valid = ["chat", "inspection", "papers", "figures", "why"];
     return (valid.includes(h) && h) || localStorage.getItem("sr-tab") || "chat";
   });
-  const [layout, setLayout] = useState(() => localStorage.getItem("sr-layout") || "split");
   const [navOpen, setNavOpen] = useState(false);
   const [model, setModel] = useState("openai/gpt-4o-mini");
   const [apiKey, setApiKeyRaw] = useState(() => localStorage.getItem("sr-key") || "");
@@ -255,7 +253,6 @@ function App() {
     // the saved tab on every reload.
     if ((location.hash || "").replace(/^#/, "") !== tab) history.replaceState(null, "", "#" + tab);
   }, [tab]);
-  useEffect(() => {localStorage.setItem("sr-layout", layout);}, [layout]);
 
   // Real corpus data: the paper list (feeds the paper filter) and whether page
   // PNGs are mounted (gates vision generation). Best-effort; on failure the
@@ -280,16 +277,6 @@ function App() {
   }, [t.accent, theme]);
   useEffect(() => {document.documentElement.setAttribute("data-density", t.density);}, [t.density]);
   useEffect(() => {document.documentElement.setAttribute("data-answerfont", t.answerFont);}, [t.answerFont]);
-  // Apply the layout tweak only when it actually changes: running on mount
-  // would clobber the persisted sr-layout choice with the tweak default. The
-  // tweak speaks "focus"; the layout state machine speaks "single".
-  const layoutTweakFirst = useRef(true);
-  useEffect(() => {
-    if (layoutTweakFirst.current) { layoutTweakFirst.current = false; return; }
-    setLayout(t.defaultLayout === "focus" ? "single" : t.defaultLayout);
-    /* eslint-disable-next-line */
-  }, [t.defaultLayout]);
-
   const crumb = CRUMB[tab];
   const stats = { papers: papers.length, figures: figures ? figures.length : 0 };
   // Tapping a nav item also dismisses the mobile drawer.
@@ -299,7 +286,7 @@ function App() {
 
   return (
     <div className="app">
-      <Sidebar tab={tab} setTab={selectTab} theme={theme} setTheme={setTheme} layout={layout} setLayout={setLayout} stats={stats} open={navOpen} />
+      <Sidebar tab={tab} setTab={selectTab} theme={theme} setTheme={setTheme} stats={stats} open={navOpen} />
       {navOpen && <div className="nav-scrim" onClick={() => setNavOpen(false)}></div>}
       <main className="main">
         <div className="topbar">
@@ -312,10 +299,6 @@ function App() {
             {(tab === "chat" || tab === "inspection") &&
             <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} model={model} setModel={setModel} demoAvailable={demoAvailable} />
             }
-            {tab === "chat" &&
-            <Segmented value={layout} onChange={setLayout}
-            options={[{ value: "split", label: "split" }, { value: "single", label: "focus" }]} />
-            }
           </div>
         </div>
 
@@ -324,7 +307,7 @@ function App() {
               destroy the conversation while the chat itself points users at
               the Papers and Figures tabs. */}
           <div style={{ display: tab === "chat" ? "contents" : "none" }}>
-            <ChatView settings={settings} set={set} layout={layout} apiKey={apiKey} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />
+            <ChatView settings={settings} set={set} apiKey={apiKey} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />
           </div>
           {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} uploadAvailable={uploadAvailable} onUploaded={reloadCorpus} />}
@@ -341,8 +324,6 @@ function App() {
         options={["#3b82f6", "#8b5cf6", "#14b8a6", "#e0993a"]}
         onChange={(v) => setTweak("accent", v)} />
         <TweakSection label="Layout" />
-        <TweakRadio label="Chat default" value={t.defaultLayout}
-        options={["split", "focus"]} onChange={(v) => setTweak("defaultLayout", v)} />
         <TweakRadio label="Density" value={t.density}
         options={["compact", "regular", "comfy"]} onChange={(v) => setTweak("density", v)} />
         <TweakSection label="Reading" />

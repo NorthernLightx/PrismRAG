@@ -23,6 +23,23 @@ function previewQuote(raw, max = 180) {
   return t.length > max ? t.slice(0, max).trim() + "…" : t;
 }
 
+// Page images shown under an answer must be the ones the answer CITED, not
+// every visual candidate retrieved: a retrieved-but-uncited page would read as
+// "the figure this answer describes" when the text never used it. Dedupe by
+// page so a figure cited in several sentences yields one thumbnail.
+function citedVisualPages(citations) {
+  const seen = new Set();
+  const out = [];
+  for (const c of citations || []) {
+    if (c.kind !== "visual" || c.page == null) continue;
+    const key = `${c.paper}:${c.page}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(c);
+  }
+  return out;
+}
+
 function AdvancedPanel({ settings, set, papers, routingAvailable }) {
   // When the server runs without the multimodal router (no GPU visual leg),
   // force_route/routing_mode are no-ops — grey them out rather than offering
@@ -91,7 +108,7 @@ function EmptyState({ onAsk, routingAvailable }) {
 
 function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
-  const figs = (msg.candidates || []).filter((c) => c.kind === "visual");
+  const citedFigs = citedVisualPages(msg.citations);
   const tokens = msg.usage ? (msg.usage.prompt_tokens || 0) + (msg.usage.completion_tokens || 0) : 0;
   // KaTeX over the finished answer only: a done message's props never change,
   // so React won't fight the DOM mutation (same pattern as the figure
@@ -131,14 +148,18 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
           </React.Fragment>
         )}
       </div>
-      {done && !msg.error && figs.length > 0 && (
+      {done && !msg.error && citedFigs.length > 0 && (
         <div className="answer-figs rise">
-          {figs.slice(0, 4).map((f, i) => (
-            <button key={f.chunk_id || i} className="answer-fig" onClick={() => onFig(f)}>
+          {citedFigs.slice(0, 4).map((f) => (
+            <button key={f.id} className="answer-fig" title="View cited page"
+              onClick={() => onFig({
+                chunk_id: f.id, paper: f.paper, page: f.page, pages: [f.page],
+                kind: "visual", bbox: f.bbox || null, text: f.quote || "", page_cite: !!f.page_cite,
+              })}>
               <div className="answer-fig-img" style={{ height: 92 }}>
                 <img src={window.RAG.pageImageUrl(f.paper, f.page)} alt={`page ${f.page}`} loading="lazy" />
               </div>
-              <div className="cap"><b>p.{f.page}</b> {previewQuote(f.text, 64)}</div>
+              <div className="cap"><b>[{f.n}] p.{f.page}</b> {previewQuote(f.quote || "", 56)}</div>
             </button>
           ))}
         </div>
@@ -181,10 +202,26 @@ function Composer({ onAsk, busy }) {
 /* ---- retrieval panel ---- */
 function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailable }) {
   const [pageItem, setPageItem] = useState(null);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sr-retr-collapsed") === "1");
+  const toggleCollapsed = () =>
+    setCollapsed((v) => { localStorage.setItem("sr-retr-collapsed", v ? "0" : "1"); return !v; });
+  if (collapsed) {
+    return (
+      <aside className="retr-panel collapsed">
+        <button className="retr-rail" onClick={toggleCollapsed} title="Show retrieval panel" aria-label="Show retrieval panel">
+          <Icon name="chevron" size={16} style={{ transform: "rotate(180deg)" }} />
+          <span className="rail-label">Retrieval</span>
+        </button>
+      </aside>
+    );
+  }
   if (!turn || !turn.candidates) {
     return (
       <aside className="retr-panel">
-        <div className="retr-head"><Icon name="route" size={15} /><h3>Retrieval</h3></div>
+        <div className="retr-head">
+          <Icon name="route" size={15} /><h3>Retrieval</h3>
+          <button className="retr-collapse" style={{ marginLeft: "auto" }} onClick={toggleCollapsed} title="Hide retrieval panel" aria-label="Hide retrieval panel"><Icon name="chevron" size={15} /></button>
+        </div>
         <div className="retr-empty">No turn yet.<br />Ask a question and the live routing decision, ranked candidates, and retrieved figures appear here.</div>
       </aside>
     );
@@ -238,6 +275,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
         <Icon name="route" size={15} />
         <h3>Retrieval</h3>
         <span className="live"><span className="dot"></span>live</span>
+        <button className="retr-collapse" onClick={toggleCollapsed} title="Hide retrieval panel" aria-label="Hide retrieval panel"><Icon name="chevron" size={15} /></button>
       </div>
       <div className="retr-body">
         <div className="retr-section">
@@ -351,7 +389,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   );
 }
 
-function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey }) {
+function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [advOpen, setAdvOpen] = useState(false);
@@ -574,7 +612,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
 
   // Bumping runSeq orphans any in-flight ask: its guarded writes become no-ops.
   const newChat = () => { runSeq.current += 1; setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };
-  // The retrieval panel is hidden in focus layout and at phone width, so a
+  // The retrieval panel is hidden at phone width, so a
   // highlight there would be invisible — open the source-page modal instead.
   // Page-image citations always open the modal: they have no panel row.
   const onCite = (tag, msg) => {
@@ -591,7 +629,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
     }
     // The panel only ever shows the LAST turn's evidence, so a highlight is
     // wrong for citations in older messages — open the modal for those too.
-    const panelHidden = layout === "single" || (window.matchMedia && window.matchMedia("(max-width: 760px)").matches);
+    const panelHidden = window.matchMedia && window.matchMedia("(max-width: 760px)").matches;
     const isLastTurn = msg === lastAssistant;
     if ((panelHidden || !isLastTurn) && cit && msg.candidates) {
       const cand = msg.candidates.find((cd) => cd.chunk_id === cit.id);
@@ -609,7 +647,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
   }, [resetSignal]);
 
   return (
-    <div className={"chat-wrap" + (layout === "single" ? " single" : "")}>
+    <div className="chat-wrap">
       <div className="chat-col">
         <div className="adv-toggle-row">
           <div className={"adv-toggle" + (advOpen ? " open" : "")} onClick={() => setAdvOpen((o) => !o)}>
@@ -643,7 +681,7 @@ function ChatView({ settings, set, layout, resetSignal, apiKey, model, papers, f
         <Composer onAsk={ask} busy={busy} />
       </div>
 
-      {layout !== "single" && <RetrievalPanel turn={lastAssistant} highlight={highlight} settings={settings} paperTitle={paperTitle} routingAvailable={routingAvailable} />}
+      <RetrievalPanel turn={lastAssistant} highlight={highlight} settings={settings} paperTitle={paperTitle} routingAvailable={routingAvailable} />
       <PageRegionModal item={pageItem} onClose={() => setPageItem(null)} paperTitle={paperTitle} />
     </div>
   );

@@ -247,8 +247,7 @@ body {
   .topbar-sub { display: none; }
   .topbar .tag { display: none; }
   /* Single-column chat: a two-pane split is unusable at phone width, so hide
-     the retrieval side-panel and its toggle and let the conversation fill. */
-  .topbar .segmented { display: none; }
+     the retrieval side-panel and let the conversation fill. */
   .endpoint-model { white-space: nowrap; }
   .endpoint-keylabel { display: none; }
   .chat-wrap .retr-panel { display: none; }
@@ -581,7 +580,25 @@ body {
 .retr-panel {
   width: 384px; flex: none; border-left: 1px solid var(--border);
   background: var(--panel); display: flex; flex-direction: column; min-height: 0;
+  transition: width .16s ease;
 }
+.retr-panel.collapsed { width: 40px; }
+.retr-rail {
+  flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 16px 0; background: none; border: none; cursor: pointer; color: var(--text-dim);
+  transition: color .12s, background .12s;
+}
+.retr-rail:hover { color: var(--text); background: var(--border-soft); }
+.retr-rail .rail-label {
+  writing-mode: vertical-rl; text-orientation: mixed; font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+.retr-collapse {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: 6px;
+  background: none; color: var(--text-dim); cursor: pointer; transition: color .12s, border-color .12s;
+}
+.retr-collapse:hover { color: var(--text); border-color: var(--accent-line); }
 .retr-head { padding: 14px 16px; border-bottom: 1px solid var(--border-soft); display: flex; align-items: center; gap: 8px; flex: none; }
 .retr-head h3 { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-dim); }
 .retr-head .live { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-family: "IBM Plex Mono", monospace; font-size: 10.5px; color: var(--good); }
