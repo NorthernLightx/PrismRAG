@@ -176,8 +176,10 @@ BGE-v2-m3 cross-encoder rerank → qwen2.5:7b generate + judge.
 | p50 whole-query latency | ~73 s |
 | p50 rerank stage on GPU | ~5.5 s |
 
-CI regression gate fails the build if any metric drops by > 5 %
-(`scripts/check_regression.py`).
+CI gates the CPU page-level retrieval slice (nDCG@5 / recall@10 / MRR) against
+`data/eval/baseline_retrieval.json` at > 5% (`scripts/check_regression.py`). The
+full-stack metrics above are verified by the manual or scheduled eval; see
+`docs/evals.md`.
 
 ## Corpus-expansion follow-up — golden v3
 

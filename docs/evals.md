@@ -70,12 +70,48 @@ hash so identical config + per-query data produce the same id.
 
 ## Regression gate
 
-`scripts/check_regression.py` compares two run JSONs. CI runs it on every
-push against `data/eval/baseline.json` (currently v3 + router + visual +
-extract-figures + extract-tables + paper-id-filter + region-number-boost
-+ rerank-length-norm + VLM-caption (gemma3:4b) + generate + judge
-baseline `83da5d51e4c3`, run on 2026-05-11; replaced `f844619927e0`.
-ADR 0009 + 2nd follow-up):
+`scripts/check_regression.py` compares two run JSONs and fails when any gated
+metric drops more than the threshold (default 5%): exit 0 if all are within
+threshold, 1 if any regressed, 2 on bad input.
+
+### What CI runs, every commit
+
+`scripts/eval_retrieval_ci.py` runs the hybrid text retriever (bge-m3 on CPU,
+BM25, RRF, no reranker) over the committed `qdrant_local/rag_corpus` snapshot
+and scores **page-level** nDCG@5 / recall@10 / MRR against
+`data/eval/baseline_retrieval.json`:
+
+```bash
+uv run python -m scripts.eval_retrieval_ci --output data/eval/runs/retrieval-ci.json
+uv run python -m scripts.check_regression \
+    --baseline data/eval/baseline_retrieval.json \
+    --candidate data/eval/runs/retrieval-ci.json \
+    --metrics ndcg_at_5 recall_at_10 mrr --threshold 0.05
+```
+
+No Ollama, no GPU, no LLM: the deterministic slice a stock CPU runner can
+reproduce. Metrics are page-level because `rag_corpus` is the shipped demo
+corpus, periodically re-baked by the docling chunker (ADR 0017 / 0021), which
+renumbers the `::cN` suffix. The v3 golden's chunk-level labels drift out of
+sync with that bake, but the page each one points at does not. Projecting both
+sides to `paper::pN` coarsens the existing human labels rather than inventing
+new ones, the same re-chunk-robustness reasoning behind ADR 0019's
+`answer_correctness`. The visual (GPU) and generation/judge (API,
+non-deterministic) legs are excluded here; they live in the full eval below.
+
+The baseline is generated on a CPU dev box. The relative-threshold gate
+absorbs the small float differences between that box and the Linux runner; if
+a green run ever shows drift from platform alone, regenerate
+`baseline_retrieval.json` on the runner.
+
+### Full-stack baseline, manual or scheduled
+
+`data/eval/baseline.json` is the end-to-end reference (v3 + router + visual +
+extract-figures + extract-tables + paper-id-filter + region-number-boost +
+rerank-length-norm + VLM-caption (gemma3:4b) + generate + judge; baseline
+`83da5d51e4c3`, run 2026-05-11, replaced `f844619927e0`; ADR 0009 + 2nd
+follow-up). It needs a GPU and Ollama, so it runs by hand (or on a scheduled
+GPU runner), not per commit:
 
 ```bash
 .venv/Scripts/python.exe -m scripts.check_regression \
@@ -84,12 +120,8 @@ ADR 0009 + 2nd follow-up):
     --threshold 0.05
 ```
 
-Exit 0 if all gated metrics within 5%, 1 if any regressed, 2 on bad input.
-Gated metrics: the six listed above (excluding `citation_grounding`).
-
-The gate is currently a smoke-test in CI (compares baseline against
-itself) until self-hosted runners can execute the live stack — see
-`.github/workflows/ci.yml` "Eval regression gate" step.
+Gated metrics there: the six listed under [Metrics](#metrics) (excluding
+`citation_grounding`).
 
 ## Rebaselining
 
