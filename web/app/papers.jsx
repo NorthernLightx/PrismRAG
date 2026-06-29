@@ -3,12 +3,18 @@
    serves are shown (no fabricated authors/venue/citations). */
 
 function PaperCard({ p, figCount, onOpen }) {
+  // The id chip duplicates the heading whenever there's no real title — the
+  // heading falls back to paper_id (data/paper_titles.json unpopulated). Show
+  // the chip only when a distinct title exists, so the id appears once.
+  const hasTitle = p.title && p.title.trim() && p.title.trim() !== p.paper_id;
   return (
     <button className="paper-card" onClick={() => onOpen(p)}>
-      <div className="paper-card-top">
-        <span className="mono paper-id">{p.paper_id}</span>
-        {p.is_arxiv && <span className="paper-venue">arXiv</span>}
-      </div>
+      {(hasTitle || p.is_arxiv) && (
+        <div className="paper-card-top">
+          {hasTitle && <span className="mono paper-id">{p.paper_id}</span>}
+          {p.is_arxiv && <span className="paper-venue">arXiv</span>}
+        </div>
+      )}
       <h3 className="serif paper-title">{p.title || p.paper_id}</h3>
       <div className="paper-stats">
         <span className="metric"><Icon name="papers" size={12} /> <b>{p.page_count}</b> pages</span>
@@ -26,6 +32,7 @@ function drawerCaption(raw) {
 }
 
 function PaperDrawer({ p, figs, onClose }) {
+  const [pageItem, setPageItem] = useState(null);
   useEffect(() => {
     if (!p) return;
     const onEsc = (e) => { if (e.key === "Escape") onClose(); };
@@ -33,11 +40,13 @@ function PaperDrawer({ p, figs, onClose }) {
     return () => document.removeEventListener("keydown", onEsc);
   }, [p, onClose]);
   if (!p) return null;
+  const hasTitle = p.title && p.title.trim() && p.title.trim() !== p.paper_id;
   return (
+    <React.Fragment>
     <div className="drawer-scrim" onClick={onClose}>
       <div className="drawer rise-r" onClick={(e) => e.stopPropagation()}>
         <div className="drawer-head">
-          <span className="mono paper-id">{p.paper_id}</span>
+          {hasTitle && <span className="mono paper-id">{p.paper_id}</span>}
           <button className="btn ghost sm" onClick={onClose}><Icon name="x" size={15} /></button>
         </div>
         <div className="drawer-body">
@@ -59,8 +68,10 @@ function PaperDrawer({ p, figs, onClose }) {
               <h4 className="section-h">Indexed figures</h4>
               <div className="fig-grid-2">
                 {figs.map((f) => (
-                  <div key={f.chunk_id} className="figthumb">
-                    <FigCrop url={f.page_image_url} bbox={f.bbox} fallbackH={92} />
+                  <div key={f.chunk_id} className="figthumb figthumb-click"
+                    onClick={() => setPageItem({ chunk_id: f.chunk_id, paper: f.paper_id, page: f.page_number, pages: [f.page_number], kind: "visual", bbox: f.bbox || null, text: f.caption || "" })}
+                    title="View source region on page">
+                    <FigCrop url={f.page_image_url} bbox={f.bbox} fallbackH={92} eager thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
                     <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(drawerCaption(f.caption), 40)}</div>
                   </div>
                 ))}
@@ -70,6 +81,8 @@ function PaperDrawer({ p, figs, onClose }) {
         </div>
       </div>
     </div>
+    <PageRegionModal item={pageItem} onClose={() => setPageItem(null)} paperTitle={() => p.title || p.paper_id} />
+    </React.Fragment>
   );
 }
 

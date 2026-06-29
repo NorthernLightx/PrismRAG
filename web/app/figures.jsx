@@ -68,8 +68,9 @@ function splitCaptionData(text) {
 // Crop a 150-DPI page image to a figure's PDF-point bbox. Computes the crop
 // transform from the image's natural size on load; falls back to the full page
 // width until then (and when a chunk has no bbox).
-function FigCrop({ url, bbox, fallbackH = 150 }) {
+function FigCrop({ url, bbox, fallbackH = 150, eager = false, thumb = null }) {
   const [s, setS] = useState(null);
+  const [thumbFailed, setThumbFailed] = useState(false);
   const onLoad = (e) => {
     const img = e.target;
     const nW = img.naturalWidth, nH = img.naturalHeight;
@@ -85,12 +86,23 @@ function FigCrop({ url, bbox, fallbackH = 150 }) {
       aspect: (fw * nW) / (fh * nH),
     });
   };
+  // Prefer the pre-rendered thumbnail (a small WebP of the crop) — a plain
+  // <img>, no full-page download. Fall back to the page CSS-crop if it 404s
+  // (e.g. a freshly uploaded paper whose thumb hasn't been rendered).
+  if (thumb && !thumbFailed) {
+    return (
+      <div className="fig-crop" style={{ position: "relative", width: "100%", overflow: "hidden", background: "var(--panel-2)" }}>
+        <img src={thumb} alt="" loading={eager ? "eager" : "lazy"} decoding="async"
+          onError={() => setThumbFailed(true)} style={{ width: "100%", display: "block" }} />
+      </div>
+    );
+  }
   return (
     <div className="fig-crop"
       style={s
         ? { position: "relative", width: "100%", aspectRatio: String(s.aspect), overflow: "hidden", background: "#fff" }
-        : { position: "relative", width: "100%", height: fallbackH, overflow: "hidden", background: "#fff" }}>
-      <img src={url} alt="" loading="lazy" onLoad={onLoad}
+        : { position: "relative", width: "100%", height: fallbackH, overflow: "hidden", background: "var(--panel-2)" }}>
+      <img src={url} alt="" loading={eager ? "eager" : "lazy"} decoding="async" onLoad={onLoad}
         style={s
           ? { position: "absolute", width: s.widthPct + "%", left: s.leftPct + "%", top: s.topPct + "%", maxWidth: "none" }
           : { width: "100%", display: "block" }} />
@@ -109,7 +121,7 @@ function FigureCard({ f, onOpen }) {
   const hasCap = name && !/^\[.+\]$/.test(name.trim());
   return (
     <button className="figure-card" onClick={() => onOpen(f)}>
-      <FigCrop url={f.page_image_url} bbox={f.bbox} />
+      <FigCrop url={f.page_image_url} bbox={f.bbox} thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
       <div className="figure-card-body">
         {hasCap
           ? (name.includes("$") || name.includes("\\("))

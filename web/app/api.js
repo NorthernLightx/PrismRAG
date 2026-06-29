@@ -41,6 +41,15 @@
     return `${ORIGIN}/pages/${encodeURIComponent(paperId)}/${encodeURIComponent(paperId)}_p${page}.png`;
   }
 
+  // Pre-rendered figure/table thumbnail (scripts/render_figure_thumbs.py). The
+  // file is keyed by chunk_id with ":" → "_" (mirrors the Docling crop name).
+  // Small WebP served from the same /pages mount; callers fall back to a
+  // full-page CSS-crop when a thumb is absent (e.g. a freshly uploaded paper).
+  function figThumbUrl(paperId, chunkId) {
+    const safe = chunkId.replace(/:/g, "_");
+    return `${ORIGIN}/pages/${encodeURIComponent(paperId)}/thumbs/${encodeURIComponent(safe)}.webp`;
+  }
+
   async function loadPapers() {
     try {
       const r = await fetch("/papers");
@@ -512,6 +521,7 @@
     SUGGESTIONS,
     supportsVision,
     pageImageUrl,
+    figThumbUrl,
     loadPapers,
     loadHealth,
     loadFigures,

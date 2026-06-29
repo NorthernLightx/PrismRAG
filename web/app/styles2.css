@@ -44,6 +44,8 @@
 }
 .paper-card:hover { border-color: var(--accent-line); transform: translateY(-2px); box-shadow: var(--shadow); }
 .paper-card-top { display: flex; align-items: center; justify-content: space-between; }
+/* Keep the venue badge right when the id chip is hidden (title-less papers). */
+.paper-card-top .paper-venue { margin-left: auto; }
 .paper-id { font-size: 11px; color: var(--accent); }
 .paper-venue { font-size: 11px; color: var(--text-faint); font-family: "IBM Plex Mono", monospace; }
 .paper-title { margin: 0; font-size: 16px; font-weight: 500; line-height: 1.3; letter-spacing: -0.005em; }
@@ -56,6 +58,8 @@
 .drawer-scrim { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; justify-content: flex-end; z-index: 100; backdrop-filter: blur(2px); }
 .drawer { width: 480px; max-width: 92vw; height: 100%; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; box-shadow: -20px 0 60px rgba(0,0,0,0.35); }
 .drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-soft); flex: none; }
+/* Keep the close button right when the id chip is hidden (title-less papers). */
+.drawer-head .btn { margin-left: auto; }
 .drawer-body { padding: 22px 24px 40px; overflow-y: auto; }
 .drawer-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
 .ds { border: 1px solid var(--border-soft); border-radius: 10px; padding: 12px; background: var(--panel-2); display: flex; flex-direction: column; gap: 4px; }

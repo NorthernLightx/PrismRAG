@@ -16,6 +16,7 @@ import argparse
 import asyncio
 import json
 import re
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -77,6 +78,10 @@ async def fetch_all(paper_ids: list[str]) -> dict[str, str]:
 
 
 def main() -> None:
+    # Windows consoles default to cp1252; the status line and arxiv titles carry
+    # non-ASCII (≈, Greek, accents) that crash the prints without this.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--pages-dir",
