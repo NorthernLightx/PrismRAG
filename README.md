@@ -130,15 +130,18 @@ Then open <http://localhost:8000/>. It's a single-page app with five tabs:
 
 Chat and Inspection both carry an Advanced panel to force the route, switch intent
 vs cascade routing, set top-K, and filter by paper. Chat's routing also has an
-agentic option (DCI; ADR [0026](./docs/decisions/)): an LLM agent greps the corpus
+agentic option (DCI): an LLM agent greps the corpus
 with terminal-style tools instead of vector search. It's off by default, text-only,
 and slower, so treat it as a demo of the approach, not the default path.
 
-Generation is bring-your-own-key. Paste an OpenRouter key into the UI and the
-chat call goes browser-direct to OpenRouter; the server only handles
-retrieval (`/query`) and never sees, logs, or stores the key. The one exception
-is the opt-in DCI mode, whose agent runs server-side: it holds your key in
-memory for that request only, never stored or logged. Vision-capable
+Generation has two paths. By default the demo answers through a keyless server
+route (`/demo/chat`) backed by a caged,
+free-tier-only OpenRouter key, so a visitor with no key still gets an answer.
+Paste your own key into the UI to upgrade: the chat call then goes
+browser-direct to OpenRouter for stronger models, and the server never sees,
+logs, or stores the key. The one exception is the opt-in DCI mode, whose agent
+runs server-side: it holds your key in memory for that request only, never
+stored or logged. Vision-capable
 models (`gpt-4o`, `claude-sonnet-4.x`, `qwen3-vl`) receive the retrieved page
 PNGs as image blocks when `RAG_PAGES_DIR` is set; populate it with
 `python -m scripts.render_pages --pdf-dir data/papers`.
@@ -147,9 +150,10 @@ API surface:
 
 - `/health` — component-wiring check (status, version, env, `pages_available`)
 - `/query` — retrieval only, no generation
-- `/answer` — server-side generation; returns 503 until both an OpenRouter
-  key and a populated Qdrant collection are present (so the public demo
-  serves retrieval, and generation stays browser-side)
+- `/demo/chat` — keyless generation through the server's caged free-tier key
+  (ADR 0027); the default answer path when no visitor key is set
+- `/answer` — full server-side generation with a configured key; returns 503
+  on the demo, which carries no shared full key
 
 ## Bring your own PDFs
 
@@ -168,8 +172,8 @@ against any collection; write a golden set at `data/golden/<name>.yaml`.
 
 For a single document, set `RAG_ENABLE_UPLOAD=true` and use the Papers tab's
 **Add PDF** button (or `POST /ingest`): the PDF is ingested into the live corpus
-and text-retrievable on the next query, no restart (ADR
-[0029](./docs/decisions/)). The flag stays off on the hosted demo; enable it only
+and text-retrievable on the next query, no restart. The flag stays off on the
+hosted demo; enable it only
 on a local or API-key-gated deploy — the route carries no auth or rate limit of
 its own.
 
@@ -247,25 +251,16 @@ compares to other document-RAG tools, see
 
 ## Limitations
 
-- **Visual routing is live, but the demo corpus is text-heavy.** The hosted
-  demo now serves the full router from a pre-built ColQwen2 page index on the
-  CPU box (ADR [0028](./docs/decisions/)), so figure and table routing work
-  there; the visual leg used to be off on CPU. The baked 20-paper arXiv corpus
-  is text-heavy, so the visual lift on it is small: the +35 % above is the
-  MMLongBench result, not what a query against these papers will show. Building
-  the page index needs a CUDA GPU; serving it runs on CPU.
-- **Generation is browser-side.** A public, unauthenticated endpoint
-  shouldn't carry a shared LLM key, so server-side `/answer` returns 503 on
-  the demo and generation runs through the browser with the visitor's own
-  key. Vision generation still works there: page PNGs from retrieval are sent
-  to OpenRouter as image blocks.
+- **The demo corpus is text-heavy.** Visual routing is on, but the baked
+  20-paper arXiv set has few figure or table answers, so the visual lift you
+  see here is small. The +35 % above is the MMLongBench result, not what these
+  papers will show.
+- **Demo answers are free-tier unless you bring a key.** Out of the box the
+  demo generates with free models. Paste an OpenRouter key for stronger ones.
 - **The LLM judge under-rates pixel answers.** When the answer is in the
   image (e.g. *"the line is red"*) and the judge sees only text, faithfulness
   is scored low. For generation quality, trust gold-answer match, not the
   judge.
-- **Cold start.** The demo runs at `min-instances=0`, so the first query
-  after idle waits for the model and index to load; the UI shows a warm-up
-  notice and retries.
 
 ## Development
 
@@ -308,9 +303,9 @@ tests/      unit + integration suites, mirrors src/
 - **Document parsing**: [Docling](https://github.com/docling-project/docling)
   (layout, tables, figure classification), [PyMuPDF](https://github.com/pymupdf/PyMuPDF)
   (page rendering)
-- **Models**: [OpenRouter](https://openrouter.ai/) for browser-side cloud
-  generation, [Ollama](https://ollama.com/) for local embeddings and the
-  routing classifier
+- **Models**: [OpenRouter](https://openrouter.ai/) for cloud generation
+  (caged demo key and browser-side BYOK), [Ollama](https://ollama.com/) for
+  local embeddings and the routing classifier
 - **API**: [FastAPI](https://fastapi.tiangolo.com/),
   [Pydantic v2](https://docs.pydantic.dev/), [uv](https://docs.astral.sh/uv/)
 - **Observability**: [OpenTelemetry](https://opentelemetry.io/),
