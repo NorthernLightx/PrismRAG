@@ -66,7 +66,7 @@ function ScoreBar({ score, kind = "text", dropped = false }) {
 }
 
 /* ---- tiny markdown -> react (bold, lists, citations) ---- */
-function inlineNodes(text, onCite) {
+function inlineNodes(text, onCite, maxCite) {
   const out = [];
   const re = /\*\*(.+?)\*\*|\[(F?\d+)\]/g;
   let last = 0, m, k = 0;
@@ -74,24 +74,31 @@ function inlineNodes(text, onCite) {
     if (m.index > last) out.push(text.slice(last, m.index));
     if (m[1] !== undefined) {
       // Recurse so citations inside bold text stay clickable chips.
-      out.push(<strong key={"b" + k++}>{inlineNodes(m[1], onCite)}</strong>);
+      out.push(<strong key={"b" + k++}>{inlineNodes(m[1], onCite, maxCite)}</strong>);
     } else {
       const tag = m[2];
       const isFig = tag[0] === "F";
-      // F-tags have no click target in chat (the handler drops them) — render
-      // them as plain markers, not a dead "Jump to evidence" affordance.
-      out.push(isFig
-        ? <sup key={"c" + k++} className="cite-ref fig">{tag}</sup>
-        : <sup key={"c" + k++} className="cite-ref"
-            onClick={() => onCite && onCite(tag)} title="Jump to evidence">{tag}</sup>
-      );
+      // Drop dangling citations: the model sometimes echoes a paper's own
+      // bibliography ref (e.g. [26]) that isn't one of our renumbered sources
+      // ([1..maxCite]). Render those as plain text, not a chip with no target.
+      if (!isFig && maxCite != null && (+tag < 1 || +tag > maxCite)) {
+        out.push("[" + tag + "]");
+      } else {
+        // F-tags have no click target in chat (the handler drops them) — render
+        // them as plain markers, not a dead "Jump to evidence" affordance.
+        out.push(isFig
+          ? <sup key={"c" + k++} className="cite-ref fig">{tag}</sup>
+          : <sup key={"c" + k++} className="cite-ref"
+              onClick={() => onCite && onCite(tag)} title="Jump to evidence">{tag}</sup>
+        );
+      }
     }
     last = re.lastIndex;
   }
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
-function Markdown({ text, onCite }) {
+function Markdown({ text, onCite, maxCite }) {
   // Group consecutive lines of the same kind: models often put the intro and
   // the bullets in one block ("Compared are:\n* a\n* b"), so a per-block
   // all-or-nothing test renders the bullets as literal asterisks.
@@ -111,12 +118,12 @@ function Markdown({ text, onCite }) {
         return segs.map((s, j) => {
           const key = i + "-" + j;
           if (s.kind === "ol") {
-            return <ol key={key}>{s.lines.map((l, k) => <li key={k}>{inlineNodes(stripMarker(l), onCite)}</li>)}</ol>;
+            return <ol key={key}>{s.lines.map((l, k) => <li key={k}>{inlineNodes(stripMarker(l), onCite, maxCite)}</li>)}</ol>;
           }
           if (s.kind === "ul") {
-            return <ul key={key}>{s.lines.map((l, k) => <li key={k}>{inlineNodes(stripMarker(l), onCite)}</li>)}</ul>;
+            return <ul key={key}>{s.lines.map((l, k) => <li key={k}>{inlineNodes(stripMarker(l), onCite, maxCite)}</li>)}</ul>;
           }
-          return <p key={key}>{inlineNodes(s.lines.join(" "), onCite)}</p>;
+          return <p key={key}>{inlineNodes(s.lines.join(" "), onCite, maxCite)}</p>;
         });
       })}
     </div>

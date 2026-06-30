@@ -23,15 +23,13 @@ function previewQuote(raw, max = 180) {
   return t.length > max ? t.slice(0, max).trim() + "…" : t;
 }
 
-// Page images shown under an answer must be the ones the answer CITED, not
-// every visual candidate retrieved: a retrieved-but-uncited page would read as
-// "the figure this answer describes" when the text never used it. Dedupe by
-// page so a figure cited in several sentences yields one thumbnail.
-function citedVisualPages(citations) {
+// The sources shown under an answer are exactly what the answer CITED — text
+// AND visual, nothing it didn't use. Deduped by page so one source is one tile.
+function citedSources(citations) {
   const seen = new Set();
   const out = [];
   for (const c of citations || []) {
-    if (c.kind !== "visual" || c.page == null) continue;
+    if (c.page == null) continue;
     const key = `${c.paper}:${c.page}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -108,7 +106,7 @@ function EmptyState({ onAsk, routingAvailable }) {
 
 function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
-  const citedFigs = citedVisualPages(msg.citations);
+  const cited = citedSources(msg.citations);
   const tokens = msg.usage ? (msg.usage.prompt_tokens || 0) + (msg.usage.completion_tokens || 0) : 0;
   // KaTeX over the finished answer only: a done message's props never change,
   // so React won't fight the DOM mutation (same pattern as the figure
@@ -143,23 +141,23 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
           </span>
         ) : (
           <React.Fragment>
-            <Markdown text={msg.answer} onCite={onCite} />
+            <Markdown text={msg.answer} onCite={onCite} maxCite={(msg.citations || []).length} />
             {!done && <span className="caret"></span>}
           </React.Fragment>
         )}
       </div>
-      {done && !msg.error && citedFigs.length > 0 && (
+      {done && !msg.error && cited.length > 0 && (
         <div className="answer-figs rise">
-          {citedFigs.slice(0, 4).map((f) => (
-            <button key={f.id} className="answer-fig" title="View cited page"
+          {cited.slice(0, 6).map((c) => (
+            <button key={c.id} className="answer-fig" title="View cited source"
               onClick={() => onFig({
-                chunk_id: f.id, paper: f.paper, page: f.page, pages: [f.page],
-                kind: "visual", bbox: f.bbox || null, text: f.quote || "", page_cite: !!f.page_cite,
+                chunk_id: c.id, paper: c.paper, page: c.page, pages: [c.page],
+                kind: c.kind, bbox: c.bbox || null, text: c.quote || "", page_cite: !!c.page_cite,
               })}>
               <div className="answer-fig-img" style={{ height: 92 }}>
-                <img src={window.RAG.pageImageUrl(f.paper, f.page)} alt={`page ${f.page}`} loading="lazy" />
+                <img src={window.RAG.pageImageUrl(c.paper, c.page)} alt={`page ${c.page}`} loading="lazy" />
               </div>
-              <div className="cap"><b>[{f.n}] p.{f.page}</b> {previewQuote(f.quote || "", 56)}</div>
+              <div className="cap"><b>[{c.n}] p.{c.page}</b> {previewQuote(c.quote || "", 56)}</div>
             </button>
           ))}
         </div>
