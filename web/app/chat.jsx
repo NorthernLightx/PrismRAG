@@ -147,17 +147,17 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
         )}
       </div>
       {done && !msg.error && cited.length > 0 && (
-        <div className="answer-figs rise">
-          {cited.slice(0, 6).map((c) => (
-            <button key={c.id} className="answer-fig" title="View cited source"
+        <div className="answer-sources rise">
+          <div className="src-head">Sources</div>
+          {cited.map((c) => (
+            <button key={c.id} className="src-row" title="View source"
               onClick={() => onFig({
                 chunk_id: c.id, paper: c.paper, page: c.page, pages: [c.page],
                 kind: c.kind, bbox: c.bbox || null, text: c.quote || "", page_cite: !!c.page_cite,
               })}>
-              <div className="answer-fig-img" style={{ height: 92 }}>
-                <img src={window.RAG.pageImageUrl(c.paper, c.page)} alt={`page ${c.page}`} loading="lazy" />
-              </div>
-              <div className="cap"><b>[{c.n}] p.{c.page}</b> {previewQuote(c.quote || "", 56)}</div>
+              <span className="src-n">[{c.n}]</span>
+              <span className="src-title">{previewQuote(paperTitle ? paperTitle(c.paper) : c.paper, 80)}</span>
+              <span className="src-page">{c.kind === "visual" && <Icon name="image" size={11} />} p.{c.page}</span>
             </button>
           ))}
         </div>
