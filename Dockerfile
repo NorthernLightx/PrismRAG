@@ -46,6 +46,9 @@ COPY --chown=app:app web /home/app/web
 # `data/pages` being absent doesn't break the build (the deploy just serves
 # text-only retrieval).
 COPY --chown=app:app data/pages /home/app/data/pages
+# Human-readable paper titles (data/paper_titles.json); /papers falls back to
+# paper_id when absent.
+COPY --chown=app:app data/paper_titles.json /home/app/data/paper_titles.json
 
 # Baked-in Qdrant snapshot. `qdrant-client` runs in embedded mode against
 # this directory (`url='path:/home/app/qdrant_local'`), so the deploy needs
