@@ -1,5 +1,7 @@
 # Two jobs:
-# - validate: builds the Dockerfile on every push and PR. Fast, no GHCR push.
+# - validate: builds the Dockerfile on PRs only. Fast, no GHCR push. On push to
+#   main, publish builds the same image, so a separate validate build would just
+#   duplicate it (and double the disk pressure on the runner).
 # - publish: runs only on main + version-tag pushes. The bake artefacts
 #   (`data/pages/`, `qdrant_local/`) are committed to git, so this job is
 #   just `docker build` + `docker push`. ~10-15 min cold cache, ~3 min warm.
@@ -37,6 +39,7 @@ concurrency:
 
 jobs:
   validate:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -46,7 +49,7 @@ jobs:
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          tool-cache: false
+          tool-cache: true
           android: true
           dotnet: true
           haskell: true
@@ -81,7 +84,7 @@ jobs:
       - name: Free disk space
         uses: jlumbroso/free-disk-space@v1.3.1
         with:
-          tool-cache: false
+          tool-cache: true
           android: true
           dotnet: true
           haskell: true
