@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     # can't be hit by drive-by traffic. Health + OpenAPI metadata routes stay
     # exempt.
     public_api_key: SecretStr | None = None
+    # Comma-separated allowed origins for CORS, set when the frontend is served
+    # from a separate host (decoupled deploy). Empty = same-origin only, no CORS.
+    cors_origins: str = ""
     # ADR 0027: caged OpenRouter key for the keyless demo path (/demo/chat).
     # Deliberately separate from `openrouter_api_key` so it can carry a hard
     # provider-side credit limit and be rotated or killed without touching

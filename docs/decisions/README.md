@@ -33,3 +33,4 @@ kept on purpose.
 - [0027](./0027-keyless-demo-chat.md) — Keyless demo chat through a caged server-side OpenRouter key
 - [0028](./0028-persisted-visual-index-cpu-serve.md) — Persisted ColQwen2 page index for CPU serving
 - [0029](./0029-runtime-document-upload.md) — Runtime document upload (flag-gated, text-leg, incremental)
+- [0030](./0030-frontend-backend-split.md) — Split the frontend off the backend image

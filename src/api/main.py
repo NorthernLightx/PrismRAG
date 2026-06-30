@@ -121,6 +121,21 @@ def create_app(*, log_file: Path | None = Path("logs/api.log")) -> FastAPI:
     api_key = settings.public_api_key.get_secret_value() if settings.public_api_key else None
     app.middleware("http")(make_api_key_middleware(api_key))
 
+    # CORS only when the frontend is served from a separate origin (decoupled
+    # deploy): origins from RAG_CORS_ORIGINS (comma-separated), empty = same-
+    # origin/no CORS. Added last so it sits outermost and answers the preflight
+    # OPTIONS before the auth middleware can short-circuit it.
+    cors_origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
+    if cors_origins:
+        from fastapi.middleware.cors import CORSMiddleware
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=cors_origins,
+            allow_methods=["GET", "POST", "OPTIONS"],
+            allow_headers=["*"],
+        )
+
     app.include_router(health.router)
     app.include_router(query.router)
     app.include_router(ingest.router)

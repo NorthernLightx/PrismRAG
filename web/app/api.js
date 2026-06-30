@@ -9,6 +9,10 @@
    These helpers return data; the components own the rendering. */
 (function () {
   const ORIGIN = window.location.origin;
+  // API base: same-origin by default (local dev + the monolith deploy). When the
+  // frontend is hosted separately, the page sets window.SPECTRARAG_API_BASE to the
+  // API service URL (via a local-only config.js) and every call routes there.
+  const API = window.SPECTRARAG_API_BASE || ORIGIN;
 
   // The real, supported model slate (mirrors the prior chat's <select>).
   // The ":free" entries are the demo chain's models, selectable here so a
@@ -38,7 +42,7 @@
   }
 
   function pageImageUrl(paperId, page) {
-    return `${ORIGIN}/pages/${encodeURIComponent(paperId)}/${encodeURIComponent(paperId)}_p${page}.png`;
+    return `${API}/pages/${encodeURIComponent(paperId)}/${encodeURIComponent(paperId)}_p${page}.png`;
   }
 
   // Pre-rendered figure/table thumbnail (scripts/render_figure_thumbs.py). The
@@ -47,12 +51,12 @@
   // full-page CSS-crop when a thumb is absent (e.g. a freshly uploaded paper).
   function figThumbUrl(paperId, chunkId) {
     const safe = chunkId.replace(/:/g, "_");
-    return `${ORIGIN}/pages/${encodeURIComponent(paperId)}/thumbs/${encodeURIComponent(safe)}.webp`;
+    return `${API}/pages/${encodeURIComponent(paperId)}/thumbs/${encodeURIComponent(safe)}.webp`;
   }
 
   async function loadPapers() {
     try {
-      const r = await fetch("/papers");
+      const r = await fetch(`${API}/papers`);
       return r.ok ? await r.json() : [];
     } catch {
       return [];
@@ -61,7 +65,7 @@
 
   async function loadHealth() {
     try {
-      const r = await fetch("/health");
+      const r = await fetch(`${API}/health`);
       return await r.json();
     } catch {
       return {};
@@ -72,7 +76,7 @@
   // docling role/label. Used by the Figures gallery and the corpus counts.
   async function loadFigures(limit = 1000) {
     try {
-      const r = await fetch(`/figures?limit=${limit}`);
+      const r = await fetch(`${API}/figures?limit=${limit}`);
       return r.ok ? await r.json() : [];
     } catch {
       return [];
@@ -105,7 +109,7 @@
       if (!apiKey) {
         throw new Error("Agentic search runs server-side and needs your OpenRouter key.");
       }
-      const res = await fetch("/query/dci", {
+      const res = await fetch(`${API}/query/dci`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-OpenRouter-Key": apiKey },
         body: JSON.stringify(body),
@@ -124,7 +128,7 @@
     // but say which one is happening; give the permanent case a short budget.
     const start = performance.now();
     while (true) {
-      const res = await fetch("/query", {
+      const res = await fetch(`${API}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -444,7 +448,7 @@
   // server-side — the browser only sends messages. A 429 means the shared
   // demo quota ran out; callers surface the bring-your-own-key prompt.
   async function streamDemoChat(messages, onDelta) {
-    const res = await fetch("/demo/chat", {
+    const res = await fetch(`${API}/demo/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ messages }),
@@ -507,7 +511,7 @@
   async function ingestPdf(file) {
     const form = new FormData();
     form.append("file", file);
-    const res = await fetch("/ingest", { method: "POST", body: form });
+    const res = await fetch(`${API}/ingest`, { method: "POST", body: form });
     if (!res.ok) {
       let detail = await res.text();
       try { detail = JSON.parse(detail).detail || detail; } catch { /* keep raw text */ }

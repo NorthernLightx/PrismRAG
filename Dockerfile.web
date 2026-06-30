@@ -1,0 +1,15 @@
+# Frontend service: a featherweight nginx image serving the static SPA (web/),
+# decoupled from the heavy ML API image. UI changes redeploy in ~minutes (this
+# builds in seconds) instead of rebuilding the multi-GB backend.
+#
+# The API URL is injected at build time (--build-arg API_BASE=https://…) and
+# written into app/config.js, so the prod endpoint stays out of the repo. With
+# no API_BASE the committed config.js (empty → same-origin) is used as-is.
+FROM nginx:1.27-alpine
+COPY web/ /usr/share/nginx/html/
+COPY nginx.web.conf /etc/nginx/conf.d/default.conf
+ARG API_BASE=""
+RUN if [ -n "$API_BASE" ]; then \
+      printf 'window.SPECTRARAG_API_BASE=%s;\n' "\"$API_BASE\"" \
+        > /usr/share/nginx/html/app/config.js; \
+    fi
