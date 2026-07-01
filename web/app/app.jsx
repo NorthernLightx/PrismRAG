@@ -138,9 +138,9 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
               <Icon name="check" size={14} className="model-row-check" />
             </button>
             }
-            <div className="model-group-label">free · no charge to your key</div>
+            <div className="model-group-label" title="No charge to your key, rate limits may apply"><span className="label-info">Free (OpenRouter key)<Icon name="info" size={12} /></span></div>
             {freeModels.map(modelRow)}
-            <div className="model-group-label">premium · billed to your key</div>
+            <div className="model-group-label" title="Billed to your key"><span className="label-info">Premium (OpenRouter key)<Icon name="info" size={12} /></span></div>
             {paidModels.map(modelRow)}
           </div>
           {!keyed &&

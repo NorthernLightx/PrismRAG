@@ -71,7 +71,7 @@ function PaperDrawer({ p, figs, onClose }) {
                   <div key={f.chunk_id} className="figthumb figthumb-click"
                     onClick={() => setPageItem({ chunk_id: f.chunk_id, paper: f.paper_id, page: f.page_number, pages: [f.page_number], kind: "visual", bbox: f.bbox || null, text: f.caption || "" })}
                     title="View source region on page">
-                    <FigCrop url={f.page_image_url} bbox={f.bbox} fallbackH={92} eager thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
+                    <FigCrop url={window.RAG.absPage(f.page_image_url)} bbox={f.bbox} fallbackH={92} eager thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
                     <div className="figthumb-meta"><span className="mono">p.{f.page_number}</span> · {clip(drawerCaption(f.caption), 40)}</div>
                   </div>
                 ))}

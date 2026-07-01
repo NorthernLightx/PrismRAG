@@ -47,16 +47,39 @@
 
   // Pre-rendered figure/table thumbnail (scripts/render_figure_thumbs.py). The
   // file is keyed by chunk_id with ":" → "_" (mirrors the Docling crop name).
-  // Small WebP served from the same /pages mount; callers fall back to a
-  // full-page CSS-crop when a thumb is absent (e.g. a freshly uploaded paper).
+  // Small WebP, served same-origin — bundled with the frontend on the split
+  // deploy (Firebase), or from the backend /pages mount on the combined deploy.
+  // Callers fall back to a full-page CSS-crop when a thumb is absent.
   function figThumbUrl(paperId, chunkId) {
     const safe = chunkId.replace(/:/g, "_");
-    return `${API}/pages/${encodeURIComponent(paperId)}/thumbs/${encodeURIComponent(safe)}.webp`;
+    return `/pages/${encodeURIComponent(paperId)}/thumbs/${encodeURIComponent(safe)}.webp`;
+  }
+
+  // /figures + /papers return page_image_url root-relative (/pages/...). On the
+  // split frontend (different origin than the API) it must resolve against the
+  // API host, not window.location.
+  function absPage(u) {
+    return u && u.startsWith("/") ? `${API}${u}` : u;
+  }
+
+  // Cloud Run scales to zero, so the first request after idle (or during a
+  // redeploy) can transiently fail or 5xx while the container spins up. Retry a
+  // few times so a cold start doesn't leave the tab empty with no recovery.
+  async function fetchRetry(url, tries = 3) {
+    for (let i = 0; ; i++) {
+      try {
+        const r = await fetch(url);
+        if (r.ok || i >= tries - 1) return r;
+      } catch (e) {
+        if (i >= tries - 1) throw e;
+      }
+      await new Promise((f) => setTimeout(f, 1200 * (i + 1)));
+    }
   }
 
   async function loadPapers() {
     try {
-      const r = await fetch(`${API}/papers`);
+      const r = await fetchRetry(`${API}/papers`);
       return r.ok ? await r.json() : [];
     } catch {
       return [];
@@ -65,8 +88,8 @@
 
   async function loadHealth() {
     try {
-      const r = await fetch(`${API}/health`);
-      return await r.json();
+      const r = await fetchRetry(`${API}/health`);
+      return r.ok ? await r.json() : {};
     } catch {
       return {};
     }
@@ -76,7 +99,7 @@
   // docling role/label. Used by the Figures gallery and the corpus counts.
   async function loadFigures(limit = 1000) {
     try {
-      const r = await fetch(`${API}/figures?limit=${limit}`);
+      const r = await fetchRetry(`${API}/figures?limit=${limit}`);
       return r.ok ? await r.json() : [];
     } catch {
       return [];
@@ -526,6 +549,7 @@
     supportsVision,
     pageImageUrl,
     figThumbUrl,
+    absPage,
     loadPapers,
     loadHealth,
     loadFigures,

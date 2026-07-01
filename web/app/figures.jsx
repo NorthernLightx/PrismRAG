@@ -68,9 +68,13 @@ function splitCaptionData(text) {
 // Crop a 150-DPI page image to a figure's PDF-point bbox. Computes the crop
 // transform from the image's natural size on load; falls back to the full page
 // width until then (and when a chunk has no bbox).
+// Session flag: once a thumb 404s (thumbnails not baked into this deploy), every
+// FigCrop skips the thumb and renders the full-page crop directly — avoids a
+// storm of failed thumb requests across the gallery.
+let thumbsAbsent = false;
 function FigCrop({ url, bbox, fallbackH = 150, eager = false, thumb = null }) {
   const [s, setS] = useState(null);
-  const [thumbFailed, setThumbFailed] = useState(false);
+  const [thumbFailed, setThumbFailed] = useState(thumbsAbsent);
   const onLoad = (e) => {
     const img = e.target;
     const nW = img.naturalWidth, nH = img.naturalHeight;
@@ -93,7 +97,7 @@ function FigCrop({ url, bbox, fallbackH = 150, eager = false, thumb = null }) {
     return (
       <div className="fig-crop" style={{ position: "relative", width: "100%", overflow: "hidden", background: "var(--panel-2)" }}>
         <img src={thumb} alt="" loading={eager ? "eager" : "lazy"} decoding="async"
-          onError={() => setThumbFailed(true)} style={{ width: "100%", display: "block" }} />
+          onError={() => { thumbsAbsent = true; setThumbFailed(true); }} style={{ width: "100%", display: "block" }} />
       </div>
     );
   }
@@ -121,7 +125,7 @@ function FigureCard({ f, onOpen }) {
   const hasCap = name && !/^\[.+\]$/.test(name.trim());
   return (
     <button className="figure-card" onClick={() => onOpen(f)}>
-      <FigCrop url={f.page_image_url} bbox={f.bbox} thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
+      <FigCrop url={window.RAG.absPage(f.page_image_url)} bbox={f.bbox} thumb={window.RAG.figThumbUrl(f.paper_id, f.chunk_id)} />
       <div className="figure-card-body">
         {hasCap
           ? (name.includes("$") || name.includes("\\("))
@@ -192,7 +196,7 @@ function FigureLightbox({ f, onClose }) {
     <div className="lb-scrim" onClick={onClose}>
       <div className="lb rise" onClick={(e) => e.stopPropagation()}>
         <div className="lb-img" style={{ position: "relative" }}>
-          <img ref={imgRef} src={f.page_image_url} alt={`page ${f.page_number}`} onLoad={place} style={{ display: "block", width: "100%", height: "auto" }} />
+          <img ref={imgRef} src={window.RAG.absPage(f.page_image_url)} alt={`page ${f.page_number}`} onLoad={place} style={{ display: "block", width: "100%", height: "auto" }} />
           {ov && (
             <div className="pm-region visual" style={{ position: "absolute", top: ov.top + "px", left: ov.left + "px", width: ov.width + "px", height: ov.height + "px" }}>
               <span className="pm-region-tab">{figCategory(f)} · selected</span>
