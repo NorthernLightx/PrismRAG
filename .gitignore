@@ -97,8 +97,6 @@ data/eval/ingestion/overlays/**/*.png
 data/eval/ingestion/vlm-spike/*.png
 data/figures/
 data/pages_dpi*/
-# regenerable figure thumbnails
-data/pages/*/thumbs/
 data/mmlongbench/
 data/dci/
 data/ingestion_study/
