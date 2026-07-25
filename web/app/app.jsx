@@ -82,6 +82,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
   const [menu, setMenu] = useState(null); // null | "model" | "key"
   const [orList, setOrList] = useState(undefined); // undefined=unfetched, null=failed, []=vision models
   const [ollama, setOllama] = useState(null); // null=probing, {ok, models}
+  const [pull, setPull] = useState(null); // null | { id, status?, pct?, error? }
   const [q, setQ] = useState("");
   const ref = useRef();
   const keyed = apiKey.trim().length > 0;
@@ -127,6 +128,24 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
   }, [provider, model, ollama]);
 
   const toggle = (which) => setMenu(menu === which ? null : which);
+
+  // One download at a time; the component outlives the popover, so a pull
+  // keeps streaming (and the progress % stays current) if the menu closes.
+  // On success the fresh tags list replaces the pane and the new model
+  // becomes the selection.
+  const startPull = (id) => {
+    if (pull && !pull.error) return;
+    setPull({ id, status: "starting", pct: null });
+    window.RAG.pullOllamaModel(id, (p) => setPull({ id, status: p.status, pct: p.pct }))
+      .then(() => window.RAG.loadOllamaModels(true))
+      .then((res) => {
+        setPull(null);
+        setOllama(res);
+        if (res.ok && res.models.some((m) => m.id === id)) setModel(id);
+      })
+      .catch((e) => setPull({ id, error: (e && e.message) || "pull failed — retry" }));
+  };
+
   const orRow = (m) =>
     <button key={m.id} className={"model-row" + (keyed && m.id === model ? " on" : "") + (keyed ? "" : " locked")}
       title={keyed ? undefined : "Needs your OpenRouter key"}
@@ -212,7 +231,7 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
             </React.Fragment>
             }
             {ollama && ollama.ok && ollama.models.length === 0 &&
-            <div className="model-group-label"><span className="label-info">No vision models installed. Try: ollama pull qwen2.5vl:7b</span></div>
+            <div className="model-group-label"><span className="label-info">No vision models installed — pull one below.</span></div>
             }
             {ollama && ollama.ok && ollama.models.length > 0 &&
             <React.Fragment>
@@ -229,6 +248,35 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
               )}
             </React.Fragment>
             }
+            {ollama && ollama.ok && (() => {
+              const installed = new Set(ollama.models.map((m) => m.id));
+              const sugg = window.RAG.OLLAMA_SUGGESTED.filter((s) => !installed.has(s.id));
+              if (sugg.length === 0) return null;
+              return (
+                <React.Fragment>
+                  <div className="model-group-label"><span className="label-info">Pull a vision model</span></div>
+                  {sugg.map((s) => {
+                    const active = pull && pull.id === s.id;
+                    const busyOther = pull && !pull.error && !active;
+                    return (
+                      <button key={s.id} className={"model-row" + (busyOther ? " locked" : "")}
+                        title={active ? undefined : `Download ${s.id} into Ollama`}
+                        onClick={() => !busyOther && startPull(s.id)}>
+                        <span className="model-row-main">
+                          <span className="mono model-row-id">{s.id}</span>
+                          <span className="model-row-note">
+                            {active
+                              ? (pull.error || `${pull.status}${pull.pct != null ? ` · ${pull.pct}%` : ""}`)
+                              : s.note}
+                          </span>
+                        </span>
+                        {!active && <Icon name="plus" size={14} className="model-row-check" />}
+                      </button>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })()}
           </div>
           }
         </div>

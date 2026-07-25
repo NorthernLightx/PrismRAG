@@ -55,6 +55,61 @@
     return _orModels;
   }
 
+  // Vision models worth pulling, shown under the installed list so a fresh
+  // Ollama gets a one-click start. Tags and download sizes verified against
+  // registry.ollama.ai manifests.
+  const OLLAMA_SUGGESTED = [
+    { id: "qwen2.5vl:3b", note: "3.2 GB" },
+    { id: "qwen2.5vl:7b", note: "6.0 GB" },
+    { id: "granite3.2-vision:2b", note: "2.4 GB · document-focused" },
+    { id: "minicpm-v:8b", note: "5.5 GB" },
+    { id: "llama3.2-vision:11b", note: "7.8 GB" },
+  ];
+
+  // Stream a model download through Ollama's /api/pull. onProgress gets
+  // { status, pct } per frame (pct only while a layer reports total bytes).
+  // Resolves when the final "success" frame arrives; rejects on an error
+  // frame or an unreachable Ollama.
+  async function pullOllamaModel(name, onProgress) {
+    const res = await fetch(`${OLLAMA_URL}/api/pull`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: name, stream: true }),
+    });
+    if (!res.ok || !res.body) {
+      throw new Error(ollamaErrorText(await res.text()));
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let ok = false;
+    const eat = (line) => {
+      if (!line) return;
+      let obj = null;
+      try {
+        obj = JSON.parse(line);
+      } catch {
+        return;
+      }
+      if (obj.error) throw new Error(obj.error);
+      if (obj.status === "success") ok = true;
+      const pct = obj.total ? Math.round(((obj.completed || 0) / obj.total) * 100) : null;
+      onProgress({ status: obj.status || "", pct });
+    };
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        eat(buf.slice(0, nl).trim());
+        buf = buf.slice(nl + 1);
+      }
+    }
+    eat(buf.trim());
+    if (!ok) throw new Error("Pull ended without success.");
+  }
+
   // Local Ollama vision models. /api/tags reports per-model `capabilities`
   // (Ollama ≥0.4), so one request tells us which models can read page images.
   // Models with a `remote_host` are ollama.com cloud passthroughs — they can
@@ -702,6 +757,8 @@
     SUGGESTIONS,
     loadOpenRouterModels,
     loadOllamaModels,
+    OLLAMA_SUGGESTED,
+    pullOllamaModel,
     pageImageUrl,
     figThumbUrl,
     absPage,
