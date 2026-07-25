@@ -108,6 +108,13 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
   const done = !msg.streaming;
   const cited = citedSources(msg.citations);
   const tokens = msg.usage ? (msg.usage.prompt_tokens || 0) + (msg.usage.completion_tokens || 0) : 0;
+  // Mirror the retrieval panel's section counts so the footer and the panel
+  // never disagree: ranked candidates, injected named-figure captions, and
+  // page-image cites that never appeared as candidates.
+  const addedN = (msg.injected || []).length;
+  const pageCiteN = (msg.citations || []).filter(
+    (c) => c.page_cite && !(msg.candidates || []).some((cd) => cd.chunk_id === c.id)
+  ).length;
   // KaTeX over the finished answer only: a done message's props never change,
   // so React won't fight the DOM mutation (same pattern as the figure
   // captions in figures.jsx). During streaming the raw $...$ stays visible.
@@ -164,7 +171,7 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
       )}
       {done && !msg.error && (msg.candidates || []).length > 0 && (
         <div className="ai-foot rise">
-          <span className="metric"><Icon name="route" size={13} /> {msg.candidates.length} chunks</span>
+          <span className="metric"><Icon name="route" size={13} /> {msg.candidates.length} ranked{addedN ? ` · ${addedN} added` : ""}{pageCiteN ? ` · ${pageCiteN} page${pageCiteN > 1 ? "s" : ""}` : ""}</span>
           {typeof msg.latencyMs === "number" && <span className="metric"><b>{(msg.latencyMs / 1000).toFixed(2)}s</b></span>}
           {tokens > 0 && <span className="metric"><b>{tokens}</b> tok</span>}
           {msg.demo && <span className="metric" title="Generated with the shared free demo model. Add your own key for stronger models.">free demo model</span>}
@@ -285,6 +292,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
               <div className="gate"><RoutePill route={turn.route || "text"} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {turn.mode || settings.route}</span></div>
               {cites.length > 0 && (
                 <div className="route-bars">
+                  <span className="cand-src">evidence the answer cited</span>
                   <div className="rb"><span className="lbl">text</span><div className="scorebar"><i style={{ width: txtShare + "%" }}></i></div><span className="pct">{txtShare}%</span></div>
                   <div className="rb"><span className="lbl">visual</span><div className="scorebar visual"><i style={{ width: visShare + "%" }}></i></div><span className="pct">{visShare}%</span></div>
                 </div>
