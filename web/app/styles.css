@@ -284,7 +284,11 @@ body {
 .endpoint-keystat { display: inline-flex; align-items: center; gap: 7px; font-size: 10.5px; color: var(--text-faint); }
 .endpoint-keystat.ok { color: var(--good); }
 
-.model-list { display: flex; flex-direction: column; gap: 3px; max-height: 230px; overflow-y: auto; }
+.endpoint-provider { margin-bottom: 11px; }
+.endpoint-provider .segmented { display: flex; }
+.endpoint-provider .seg { flex: 1; }
+.model-search { margin: 4px 2px 6px; font-size: 12px; }
+.model-list { display: flex; flex-direction: column; gap: 3px; max-height: 280px; overflow-y: auto; }
 .model-row {
   display: flex; align-items: center; gap: 10px; padding: 8px 9px; border-radius: 8px;
   border: 1px solid transparent; background: none; cursor: pointer; text-align: left; width: 100%; font-family: inherit;

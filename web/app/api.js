@@ -2,30 +2,86 @@
 
    Ported from the prior vanilla chat (web/index.html) so the React views talk
    to the same endpoints with the same battle-tested behaviour: same-origin
-   POST /query (with the post-cold-start 503 warm-up retry), POST /query/dci for
-   the agentic tier, and client-side OpenRouter generation with the visitor's
-   own key (BYOK). Without a key, generation falls back to the server's
-   keyless demo path (POST /demo/chat — free model, daily-capped, ADR 0027).
-   These helpers return data; the components own the rendering. */
+   POST /query (with the post-cold-start 503 warm-up retry), POST /query/dci
+   for the agentic tier, and client-side generation against the visitor's own
+   provider (ADR 0031): OpenRouter with their key, or a local Ollama through
+   its OpenAI-compatible endpoint. These helpers return data; the components
+   own the rendering. */
 (function () {
   const ORIGIN = window.location.origin;
   // API base: same-origin by default (local dev + the monolith deploy). When the
   // frontend is hosted separately, the page sets window.SPECTRARAG_API_BASE to the
   // API service URL (via a local-only config.js) and every call routes there.
   const API = window.SPECTRARAG_API_BASE || ORIGIN;
+  const OPENROUTER_URL = "https://openrouter.ai/api/v1";
+  // The UI is local-first (served by `spectrarag serve`), so the browser can
+  // reach a sibling Ollama directly — its default CORS allows localhost origins.
+  const OLLAMA_URL = "http://localhost:11434";
 
-  // The real, supported model slate (mirrors the prior chat's <select>).
-  // The ":free" entries are the demo chain's models, selectable here so a
-  // keyed visitor can also run at zero cost (free-tier rate limits apply).
-  const MODELS = [
+  // Curated OpenRouter shortlist, pinned above the fetched list in the model
+  // menu (and the whole menu when the /models fetch fails). Vision-capable
+  // only: the corpus is text+figures and generation attaches page images.
+  const PINNED = [
     { id: "openai/gpt-4o-mini", note: "vision · cheapest" },
     { id: "anthropic/claude-sonnet-4.6", note: "vision" },
     { id: "openai/gpt-4o", note: "vision" },
     { id: "qwen/qwen3-vl-32b-instruct", note: "vision · open" },
-    { id: "meta-llama/llama-3.1-70b-instruct", note: "text-only" },
     { id: "google/gemma-4-26b-a4b-it:free", note: "vision · free" },
     { id: "nvidia/nemotron-nano-12b-v2-vl:free", note: "vision · free" },
   ];
+
+  // Full OpenRouter catalog, vision-capable only. Public endpoint, no key
+  // needed. One in-flight/settled promise per page load — the list is large
+  // and model churn within a session doesn't matter. Resolves null on failure
+  // (the menu then shows just the pins).
+  let _orModels = null;
+  function loadOpenRouterModels() {
+    if (_orModels) return _orModels;
+    _orModels = fetch(`${OPENROUTER_URL}/models`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.data)) return null;
+        return data.data
+          .filter((m) => (m.architecture?.input_modalities || []).includes("image"))
+          .map((m) => ({
+            id: m.id,
+            name: m.name || m.id,
+            ctx: m.context_length || 0,
+            free: m.id.endsWith(":free"),
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id));
+      })
+      .catch(() => null);
+    return _orModels;
+  }
+
+  // Local Ollama vision models. /api/tags reports per-model `capabilities`
+  // (Ollama ≥0.4), so one request tells us which models can read page images.
+  // { ok: false } when Ollama isn't reachable; `force` re-probes (Retry button).
+  let _ollamaModels = null;
+  function loadOllamaModels(force) {
+    if (_ollamaModels && !force) return _ollamaModels;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 2000);
+    _ollamaModels = fetch(`${OLLAMA_URL}/api/tags`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.models)) return { ok: false };
+        const models = data.models
+          .filter((m) => (m.capabilities || []).includes("vision"))
+          .map((m) => {
+            const d = m.details || {};
+            const bits = [];
+            if (d.parameter_size) bits.push(d.parameter_size);
+            if (d.context_length) bits.push(`${Math.round(d.context_length / 1000)}k ctx`);
+            return { id: m.name, note: bits.join(" · ") };
+          });
+        return { ok: true, models };
+      })
+      .catch(() => ({ ok: false }))
+      .finally(() => clearTimeout(timer));
+    return _ollamaModels;
+  }
 
   // Suggestion chips. Carried over from the prior chat, where each was checked
   // to retrieve its target paper as the top hit against the live corpus. One
@@ -35,11 +91,6 @@
     { q: "What does Figure 1 in HERMES++ illustrate about the proposed framework?", route: "visual" },
     { q: "Which surrogate losses are compared by convexity, smoothness, and consistency?", route: "text + visual" },
   ];
-
-  function supportsVision(model) {
-    // Mirrors the prior chat: the text-only Llama can't read page images.
-    return !model.includes("llama-3.1-70b");
-  }
 
   function pageImageUrl(paperId, page) {
     return `${API}/pages/${encodeURIComponent(paperId)}/${encodeURIComponent(paperId)}_p${page}.png`;
@@ -197,38 +248,98 @@
     ];
   }
 
-  // BYOK condense: non-streaming, low max_tokens, the user's chosen model.
-  async function condense(apiKey, model, priorTurns, latest) {
-    const messages = condenseMessages(priorTurns, latest);
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
+  // gen = { provider: "openrouter" | "ollama", model, apiKey } — the one
+  // object the chat flow threads into every generation call.
+  //
+  // Ollama goes through its NATIVE /api/chat, not the OpenAI-compat /v1
+  // endpoint: /v1 cannot set num_ctx and reloads the model at the runtime
+  // default (4096), which rejects any page-image prompt (~16k tokens). The
+  // native route takes options.num_ctx per request.
+  const OLLAMA_NUM_CTX = 32768;
+
+  // OpenAI-style multimodal content arrays → Ollama-native messages: text
+  // parts joined, image data URLs stripped to bare base64 in `images`. The
+  // in-text [page image …] labels keep their order, matching the image order.
+  function toOllamaMessages(messages) {
+    return messages.map((m) => {
+      if (typeof m.content === "string") return { role: m.role, content: m.content };
+      const texts = [];
+      const images = [];
+      for (const part of m.content) {
+        if (part.type === "text") texts.push(part.text);
+        else if (part.type === "image_url") {
+          const url = (part.image_url && part.image_url.url) || "";
+          const i = url.indexOf("base64,");
+          if (i >= 0) images.push(url.slice(i + 7));
+        }
+      }
+      const out = { role: m.role, content: texts.join("\n") };
+      if (images.length) out.images = images;
+      return out;
+    });
+  }
+
+  function ollamaBody(gen, messages, { stream, maxTokens, temperature }) {
+    return {
+      model: gen.model,
+      messages: toOllamaMessages(messages),
+      stream,
+      keep_alive: "10m",
+      options: { num_ctx: OLLAMA_NUM_CTX, num_predict: maxTokens, temperature },
+    };
+  }
+
+  function openrouterRequest(gen, messages, { stream, maxTokens, temperature }) {
+    const body = { model: gen.model, messages, temperature, max_tokens: maxTokens, stream };
+    if (stream) body.usage = { include: true };
+    return {
+      url: `${OPENROUTER_URL}/chat/completions`,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${gen.apiKey}`,
         "HTTP-Referer": ORIGIN,
-        "X-Title": "SpectraRAG (condense)",
+        "X-Title": "SpectraRAG",
       },
-      body: JSON.stringify({ model, messages, temperature: 0, max_tokens: 80 }),
+      body,
+    };
+  }
+
+  // Native Ollama error bodies are {"error": "..."} (a string) or
+  // {"error": {"message": "..."}} depending on the path — unwrap either.
+  function ollamaErrorText(raw) {
+    try {
+      const e = JSON.parse(raw).error;
+      return (e && (e.message || (typeof e === "string" ? e : ""))) || raw;
+    } catch {
+      return raw;
+    }
+  }
+
+  // Condense: non-streaming, low max_tokens, the user's chosen model.
+  async function condense(gen, priorTurns, latest) {
+    const messages = condenseMessages(priorTurns, latest);
+    const opts = { stream: false, maxTokens: 80, temperature: 0 };
+    if (gen.provider === "ollama") {
+      const res = await fetch(`${OLLAMA_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ollamaBody(gen, messages, opts)),
+      });
+      if (!res.ok) throw new Error(`Condense failed (${res.status}): ${await res.text()}`);
+      const data = await res.json();
+      return ((data.message && data.message.content) || "").trim() || latest;
+    }
+    const req = openrouterRequest(gen, messages, opts);
+    const res = await fetch(req.url, {
+      method: "POST",
+      headers: req.headers,
+      body: JSON.stringify(req.body),
     });
     if (!res.ok) {
       throw new Error(`Condense failed (${res.status}): ${await res.text()}`);
     }
     const data = await res.json();
     return (data.choices?.[0]?.message?.content || "").trim() || latest;
-  }
-
-  // Keyless condense through the server's demo path, so follow-up turns
-  // retrieve with a resolved query instead of raw text like "what is that".
-  // Costs one extra demo-quota call per follow-up; falls back to the raw
-  // message on any failure (quota, flaky free endpoint).
-  async function condenseDemo(priorTurns, latest) {
-    try {
-      const { text } = await streamDemoChat(condenseMessages(priorTurns, latest), () => {});
-      const q = (text || "").trim().split("\n")[0].trim();
-      return q && q.length <= 300 ? q : latest;
-    } catch {
-      return latest;
-    }
   }
 
   // Build the OpenRouter chat messages. Based on src/prompts/library/answer.yaml
@@ -315,9 +426,9 @@
     const content = [];
     const seenPages = new Set();
     // Page images average ~0.5 MB as base64; with the ctx slider at 16 an
-    // uncapped loop could inline 15+ MB and blow provider payload limits or
-    // the demo relay's read timeout. Six chunk pages plus the two referenced-
-    // figure extras keeps the body well under that.
+    // uncapped loop could inline 15+ MB and blow provider payload limits.
+    // Six chunk pages plus the two referenced-figure extras keeps the body
+    // well under that.
     let chunkImages = 0;
     for (const c of chunks) {
       content.push({
@@ -364,9 +475,9 @@
         content.push({ type: "image_url", image_url: { url: dataUrl } });
       }
     }
-    // The citation rule lives in the system prompt, but the small free models
-    // the demo chain falls back to drop it there: nemotron-nano-12b emits zero
-    // bracket citations until the rule is restated next to the question.
+    // The citation rule lives in the system prompt, but small models drop it
+    // there: nemotron-nano-12b emits zero bracket citations until the rule is
+    // restated next to the question.
     content.push({
       type: "text",
       text:
@@ -379,8 +490,8 @@
     return { messages, injected };
   }
 
-  // Read an OpenRouter-style SSE stream, invoking onDelta(text) per token.
-  // Returns { text, usage }. Shared by the BYOK and demo streaming paths.
+  // Read an OpenRouter SSE stream, invoking onDelta(text) per token.
+  // Returns { text, usage }.
   async function readSse(res, onDelta) {
     let acc = "";
     let usage = { prompt_tokens: 0, completion_tokens: 0 };
@@ -440,54 +551,79 @@
     return { text: acc, usage };
   }
 
-  // Stream a completion from OpenRouter, invoking onDelta(text) per token.
-  // Returns { text, usage }.
-  async function streamChat(apiKey, model, messages, onDelta) {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-        "HTTP-Referer": ORIGIN,
-        "X-Title": "SpectraRAG",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.2,
-        max_tokens: 800,
-        stream: true,
-        usage: { include: true },
-      }),
-    });
-    if (!res.ok || !res.body) {
-      throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
+  // Read Ollama's native NDJSON stream (one JSON object per line), invoking
+  // onDelta(text) per token. The final done frame carries the token counts,
+  // mapped onto the OpenAI usage shape the UI already renders.
+  async function readNdjson(res, onDelta) {
+    let acc = "";
+    let usage = { prompt_tokens: 0, completion_tokens: 0 };
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    const eat = (line) => {
+      if (!line) return;
+      let obj = null;
+      try {
+        obj = JSON.parse(line);
+      } catch {
+        return; // partial line — skip
+      }
+      if (obj.error) {
+        const err = new Error(ollamaErrorText(line));
+        err.code = "stream_error";
+        throw err;
+      }
+      const delta = (obj.message && obj.message.content) || "";
+      if (delta) {
+        acc += delta;
+        onDelta(delta);
+      }
+      if (obj.done) {
+        usage = { prompt_tokens: obj.prompt_eval_count || 0, completion_tokens: obj.eval_count || 0 };
+      }
+    };
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) >= 0) {
+        eat(buf.slice(0, nl).trim());
+        buf = buf.slice(nl + 1);
+      }
     }
-    return readSse(res, onDelta);
+    eat(buf.trim());
+    return { text: acc, usage };
   }
 
-  // Keyless path: the server generates with its own caged key on a free
-  // model. Model choice, price pinning, and the daily quota all live
-  // server-side — the browser only sends messages. A 429 means the shared
-  // demo quota ran out; callers surface the bring-your-own-key prompt.
-  async function streamDemoChat(messages, onDelta) {
-    const res = await fetch(`${API}/demo/chat`, {
+  // Stream a completion from the chosen provider, invoking onDelta(text) per
+  // token. Returns { text, usage }.
+  async function streamChat(gen, messages, onDelta) {
+    const opts = { stream: true, maxTokens: 800, temperature: 0.2 };
+    if (gen.provider === "ollama") {
+      let res;
+      try {
+        res = await fetch(`${OLLAMA_URL}/api/chat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(ollamaBody(gen, messages, opts)),
+        });
+      } catch {
+        const err = new Error("Can't reach Ollama at localhost:11434 — is it running?");
+        err.code = "ollama_down";
+        throw err;
+      }
+      if (!res.ok || !res.body) {
+        throw new Error(`Ollama: ${ollamaErrorText(await res.text())}`);
+      }
+      return readNdjson(res, onDelta);
+    }
+    const req = openrouterRequest(gen, messages, opts);
+    const res = await fetch(req.url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      headers: req.headers,
+      body: JSON.stringify(req.body),
     });
-    if (res.status === 429) {
-      const err = new Error("The free demo hit its daily limit.");
-      err.code = "demo_quota";
-      throw err;
-    }
-    if (res.status === 502) {
-      // The server tried the whole free-model chain and every endpoint was
-      // down (free-pool churn). Keyless visitors have no key to blame.
-      const err = new Error("The free demo models are all busy right now. Retry in a minute, or add your own OpenRouter key (top-right).");
-      err.code = "demo_down";
-      throw err;
-    }
     if (!res.ok || !res.body) {
       throw new Error(`${res.status} ${res.statusText}: ${await res.text()}`);
     }
@@ -529,7 +665,7 @@
   }
 
   // Upload a PDF into the local corpus (POST /ingest, ADR 0029). Multipart
-  // form-data. 403 when RAG_ENABLE_UPLOAD is off (the public demo); the Papers
+  // form-data. 403 when RAG_ENABLE_UPLOAD is off; the Papers
   // tab hides the control via the upload_available health flag.
   async function ingestPdf(file) {
     const form = new FormData();
@@ -544,9 +680,10 @@
   }
 
   window.RAG = {
-    MODELS,
+    PINNED,
     SUGGESTIONS,
-    supportsVision,
+    loadOpenRouterModels,
+    loadOllamaModels,
     pageImageUrl,
     figThumbUrl,
     absPage,
@@ -556,10 +693,8 @@
     ingestPdf,
     retrieve,
     condense,
-    condenseDemo,
     buildMessages,
     streamChat,
-    streamDemoChat,
     renumberCitations,
     routeLabel,
   };

@@ -174,7 +174,6 @@ function AiMessage({ msg, onCite, onFig, paperTitle, pendingLabel }) {
           <span className="metric"><Icon name="route" size={13} /> {msg.candidates.length} ranked{addedN ? ` · ${addedN} added` : ""}{pageCiteN ? ` · ${pageCiteN} page${pageCiteN > 1 ? "s" : ""}` : ""}</span>
           {typeof msg.latencyMs === "number" && <span className="metric"><b>{(msg.latencyMs / 1000).toFixed(2)}s</b></span>}
           {tokens > 0 && <span className="metric"><b>{tokens}</b> tok</span>}
-          {msg.demo && <span className="metric" title="Generated with the shared free demo model. Add your own key for stronger models.">free demo model</span>}
         </div>
       )}
     </div>
@@ -395,7 +394,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   );
 }
 
-function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey }) {
+function ChatView({ settings, set, resetSignal, apiKey, provider, model, papers, figures, pagesAvailable, routingAvailable, onNeedKey }) {
   const [turns, setTurns] = useState([]);
   const [busy, setBusy] = useState(false);
   const [advOpen, setAdvOpen] = useState(false);
@@ -472,25 +471,20 @@ function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, 
         return;
       }
 
-      // Condense follow-ups into a standalone query: BYOK browser-direct, or
-      // through the demo path keyless (one extra demo call; falls back to the
-      // raw message on failure). First turns retrieve as typed.
-      const hasKeyForCondense = !!(apiKey && apiKey.trim());
+      // Whether this turn can generate at all: Ollama needs a picked model,
+      // OpenRouter needs the visitor's key.
+      const canGenerate = provider === "ollama" ? !!model : !!(apiKey && apiKey.trim());
+
+      // Condense follow-ups into a standalone query through the chosen
+      // provider. First turns retrieve as typed. A transient failure on this
+      // 80-token call must not kill the turn: retrieval needs no generation —
+      // fall back to the raw message.
       let searchQuery = q;
-      if (priorTurns.length) {
-        if (hasKeyForCondense) {
-          // A transient 429/5xx on this 80-token call must not kill the turn:
-          // retrieval needs no key — fall back to the raw message, like the
-          // keyless condenseDemo does.
-          try {
-            searchQuery = await window.RAG.condense(apiKey, model, priorTurns, q);
-          } catch {
-            searchQuery = q;
-          }
-        } else if (demoAvailable) {
-          setStatus("Condensing the follow-up into a search query…");
-          searchQuery = await window.RAG.condenseDemo(priorTurns, q);
-          live(() => setStatus(""));
+      if (priorTurns.length && canGenerate) {
+        try {
+          searchQuery = await window.RAG.condense({ provider, model, apiKey }, priorTurns, q);
+        } catch {
+          searchQuery = q;
         }
       }
       upd({ searchedFor: searchQuery });
@@ -524,33 +518,26 @@ function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, 
         return;
       }
 
-      // Generation: browser-direct with the visitor's key (BYOK) when one is
-      // set, else the server's keyless demo path (free model, daily-capped).
-      // Only when the server has no demo key either does this stop at
-      // retrieval with the bring-a-key notice.
-      const hasKey = !!(apiKey && apiKey.trim());
-      if (!hasKey && !demoAvailable) {
-        live(() => setStatus("Add your OpenRouter key (top-right) to generate a cited answer."));
-        upd({
-          answer: "Retrieved the chunks shown on the right. Add your OpenRouter key (top-right) to generate a cited answer from them.",
-          streaming: false,
-          notice: true,
-          latencyMs: Math.round(tRetrieve),
-        });
+      // Generation is browser-direct on the chosen provider. Without one
+      // configured, stop at retrieval with a how-to notice.
+      if (!canGenerate) {
+        const notice = provider === "ollama"
+          ? "Retrieved the chunks shown on the right. Pick a vision model in the model menu (top-right) to generate a cited answer from them — retrieval works either way."
+          : "Retrieved the chunks shown on the right. Add your OpenRouter key (top-right) to generate a cited answer from them.";
+        live(() => setStatus(""));
+        upd({ answer: notice, streaming: false, notice: true, latencyMs: Math.round(tRetrieve) });
         return;
       }
 
-      // The demo chain is all vision-capable models, so keyless turns always
-      // attach page images when pages are served.
-      const useImages = pagesAvailable && (hasKey ? window.RAG.supportsVision(model) : true);
-      if (useImages) live(() => setStatus(hasKey ? "Reading the retrieved page images…" : "Free demo model is reading the retrieved pages…"));
+      // Both providers only offer vision-capable models, so page images are
+      // gated solely on whether the server mounts them.
+      const useImages = pagesAvailable;
+      if (useImages) live(() => setStatus("Reading the retrieved page images…"));
       const { messages, injected } = await window.RAG.buildMessages(priorTurns, q, results, useImages, figures);
       if (injected && injected.length) upd({ injected });
       const tGen = performance.now();
       const onDelta = (delta) => upd((prev) => ({ answer: prev.answer + delta }));
-      const { text, usage } = hasKey
-        ? await window.RAG.streamChat(apiKey, model, messages, onDelta)
-        : await window.RAG.streamDemoChat(messages, onDelta);
+      const { text, usage } = await window.RAG.streamChat({ provider, model, apiKey }, messages, onDelta);
 
       // Renumber the model's chunk-id citations → [1][2] and build the list.
       const { newText, ids } = window.RAG.renumberCitations(text);
@@ -575,22 +562,12 @@ function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, 
         streaming: false,
         citations,
         usage,
-        demo: !hasKey,
         latencyMs: Math.round(performance.now() - tGen + tRetrieve),
       });
     } catch (err) {
-      if (err && err.code === "demo_quota") {
-        // The shared free quota ran out for today: hand off to the key modal
-        // instead of rendering it as a failure — retrieval still worked.
-        onNeedKey && onNeedKey();
-        upd({
-          answer: "Today's free demo answers are used up, but retrieval still works — the chunks are on the right. Add your own OpenRouter key (top-right) to keep generating answers.",
-          streaming: false,
-          notice: true,
-        });
-      } else if (err && (err.code === "demo_down" || err.code === "stream_error")) {
-        // Upstream model failure, not the visitor's fault — say so without
-        // blaming a key they may not even have, and keep any partial answer.
+      if (err && (err.code === "ollama_down" || err.code === "stream_error")) {
+        // Provider failure, not the visitor's fault — say so without blaming
+        // a key or model they configured fine, and keep any partial answer.
         upd((prev) => ({
           answer: prev.answer
             ? `${prev.answer}\n\nGeneration stopped early: ${(err && err.message) || "the model provider failed."}`
@@ -604,7 +581,7 @@ function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, 
         upd((prev) => ({
           answer: prev.answer
             ? `${prev.answer}\n\nGeneration interrupted: ${(err && err.message) || err}`
-            : `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or your OpenRouter key is invalid.`,
+            : `Request failed: ${(err && err.message) || err}. Either the server isn't reachable, or the model provider rejected the request.`,
           streaming: false,
           error: !prev.answer,
           notice: !!prev.answer,
@@ -614,7 +591,7 @@ function ChatView({ settings, set, resetSignal, apiKey, model, papers, figures, 
     } finally {
       live(() => setBusy(false));
     }
-  }, [busy, apiKey, model, settings, figures, pagesAvailable, demoAvailable, routingAvailable, onNeedKey]);
+  }, [busy, apiKey, provider, model, settings, figures, pagesAvailable, routingAvailable, onNeedKey]);
 
   // Bumping runSeq orphans any in-flight ask: its guarded writes become no-ops.
   const newChat = () => { runSeq.current += 1; setTurns([]); setHighlight(null); setBusy(false); setStatus(""); };

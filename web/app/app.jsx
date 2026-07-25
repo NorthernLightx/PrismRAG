@@ -74,19 +74,18 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
 /* Two top-bar pills: model picker and key entry. Separate menus, because
    switching models is a mid-session action and key entry is one-time setup —
    one popover for both autofocused the password field on every model switch.
-   The model menu groups the slate into free and premium. Every browser-direct
-   call needs the visitor's key (OpenRouter requires auth even on :free
-   models), so keyless rows hand off to the key menu; keyless chat itself runs
-   on the server's demo path where the server picks the model (ADR 0027). */
-function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }) {
+   The model menu switches between the two providers (ADR 0031): OpenRouter
+   (browser-direct with the visitor's key — required even on :free models, so
+   keyless rows hand off to the key menu) and a local Ollama, whose vision
+   models are listed live from /api/tags and need no key at all. */
+function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, setModel }) {
   const [menu, setMenu] = useState(null); // null | "model" | "key"
+  const [orList, setOrList] = useState(undefined); // undefined=unfetched, null=failed, []=vision models
+  const [ollama, setOllama] = useState(null); // null=probing, {ok, models}
+  const [q, setQ] = useState("");
   const ref = useRef();
   const keyed = apiKey.trim().length > 0;
-  const cur = window.RAG.MODELS.find((m) => m.id === model) || window.RAG.MODELS[0];
-  const onDemo = !keyed && demoAvailable;
-  const shortModel = onDemo ? "free (auto)" : cur.id.split("/").pop();
-  const freeModels = window.RAG.MODELS.filter((m) => m.id.endsWith(":free"));
-  const paidModels = window.RAG.MODELS.filter((m) => !m.id.endsWith(":free"));
+  const shortModel = provider === "ollama" ? (model || "pick a model") : model.split("/").pop();
 
   useEffect(() => {
     if (!menu) return;
@@ -97,8 +96,29 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
     return () => {document.removeEventListener("mousedown", onDown);document.removeEventListener("keydown", onEsc);};
   }, [menu]);
 
+  // Fetch the open pane's model list lazily — the OpenRouter catalog once per
+  // page load, the Ollama probe on every open (it's local and instant, and the
+  // user may have started Ollama since the last look).
+  useEffect(() => {
+    if (menu !== "model") return;
+    if (provider === "openrouter" && orList === undefined) {
+      window.RAG.loadOpenRouterModels().then(setOrList);
+    }
+    if (provider === "ollama") {
+      window.RAG.loadOllamaModels(true).then(setOllama);
+    }
+  }, [menu, provider]);
+
+  // First Ollama pick is automatic: the provider is unusable without a model,
+  // and the first listed vision model is as good a start as any.
+  useEffect(() => {
+    if (provider === "ollama" && !model && ollama && ollama.ok && ollama.models.length > 0) {
+      setModel(ollama.models[0].id);
+    }
+  }, [provider, model, ollama]);
+
   const toggle = (which) => setMenu(menu === which ? null : which);
-  const modelRow = (m) =>
+  const orRow = (m) =>
     <button key={m.id} className={"model-row" + (keyed && m.id === model ? " on" : "") + (keyed ? "" : " locked")}
       title={keyed ? undefined : "Needs your OpenRouter key"}
       onClick={() => (keyed ? setModel(m.id) : setMenu("key"))}>
@@ -108,6 +128,13 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
       </span>
       {keyed && m.id === model && <Icon name="check" size={14} className="model-row-check" />}
     </button>;
+
+  const pinnedIds = new Set(window.RAG.PINNED.map((m) => m.id));
+  const query = q.trim().toLowerCase();
+  const fetched = (orList || [])
+    .filter((m) => !pinnedIds.has(m.id))
+    .filter((m) => !query || m.id.toLowerCase().includes(query) || m.name.toLowerCase().includes(query))
+    .map((m) => ({ id: m.id, note: `${m.free ? "free · " : ""}${m.ctx ? Math.round(m.ctx / 1000) + "k ctx" : "vision"}` }));
 
   return (
     <div className="endpoint" ref={ref}>
@@ -126,27 +153,74 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
       <div className="endpoint-pop rise">
           <div className="endpoint-pop-head">
             <span className="endpoint-pop-title"><Icon name="server" size={13} /> Model</span>
-            <span className="endpoint-pop-sub mono">via OpenRouter</span>
+            <span className="endpoint-pop-sub mono">{provider === "ollama" ? "localhost:11434" : "via OpenRouter"}</span>
           </div>
-          <div className="model-list">
-            {onDemo &&
-            <button className="model-row on" onClick={() => setMenu(null)}>
-              <span className="model-row-main">
-                <span className="mono model-row-id">free (auto)</span>
-                <span className="model-row-note">server picks a free vision model · daily cap</span>
-              </span>
-              <Icon name="check" size={14} className="model-row-check" />
+          <div className="endpoint-provider">
+            <Segmented value={provider} onChange={setProvider} options={[
+              { value: "openrouter", label: "OpenRouter" },
+              { value: "ollama", label: "Ollama (local)" },
+            ]} />
+          </div>
+          {provider === "openrouter" &&
+          <React.Fragment>
+            <div className="model-list">
+              <div className="model-group-label"><span className="label-info">Suggested</span></div>
+              {window.RAG.PINNED.map(orRow)}
+              <div className="model-group-label">
+                <span className="label-info">
+                  {orList === undefined ? "Loading the full list…"
+                    : orList === null ? "Couldn't load the full list — showing the shortlist"
+                    : `All vision models · ${orList.length}`}
+                </span>
+              </div>
+              {Array.isArray(orList) && orList.length > 0 &&
+              <input className="input model-search" placeholder="Search models…" value={q}
+                onChange={(e) => setQ(e.target.value)} />
+              }
+              {fetched.map(orRow)}
+              {Array.isArray(orList) && query && fetched.length === 0 &&
+              <div className="model-group-label"><span className="label-info">No match for “{q.trim()}”</span></div>
+              }
+            </div>
+            {!keyed &&
+            <button className="btn primary sm endpoint-cta" onClick={() => setMenu("key")}>
+              Add your OpenRouter key to pick a model
             </button>
             }
-            <div className="model-group-label" title="No charge to your key, rate limits may apply"><span className="label-info">Free (OpenRouter key)<Icon name="info" size={12} /></span></div>
-            {freeModels.map(modelRow)}
-            <div className="model-group-label" title="Billed to your key"><span className="label-info">Premium (OpenRouter key)<Icon name="info" size={12} /></span></div>
-            {paidModels.map(modelRow)}
+          </React.Fragment>
+          }
+          {provider === "ollama" &&
+          <div className="model-list">
+            {ollama === null &&
+            <div className="model-group-label"><span className="label-info">Looking for Ollama…</span></div>
+            }
+            {ollama && !ollama.ok &&
+            <React.Fragment>
+              <div className="model-group-label"><span className="label-info">Ollama isn't running at localhost:11434.</span></div>
+              <button className="btn ghost sm endpoint-cta" onClick={() => { setOllama(null); window.RAG.loadOllamaModels(true).then(setOllama); }}>
+                Retry
+              </button>
+            </React.Fragment>
+            }
+            {ollama && ollama.ok && ollama.models.length === 0 &&
+            <div className="model-group-label"><span className="label-info">No vision models installed. Try: ollama pull qwen2.5vl:7b</span></div>
+            }
+            {ollama && ollama.ok && ollama.models.length > 0 &&
+            <React.Fragment>
+              <div className="model-group-label"><span className="label-info">Local vision models · {ollama.models.length}</span></div>
+              {ollama.models.map((m) =>
+                <button key={m.id} className={"model-row" + (m.id === model ? " on" : "")}
+                  onClick={() => setModel(m.id)}>
+                  <span className="model-row-main">
+                    <span className="mono model-row-id">{m.id}</span>
+                    <span className="model-row-note">{m.note}</span>
+                  </span>
+                  {m.id === model && <Icon name="check" size={14} className="model-row-check" />}
+                </button>
+              )}
+            </React.Fragment>
+            }
           </div>
-          {!keyed &&
-          <button className="btn primary sm endpoint-cta" onClick={() => setMenu("key")}>
-            Add your OpenRouter key to pick a model
-          </button>
           }
         </div>
       }
@@ -162,7 +236,7 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
           onChange={(e) => setApiKey(e.target.value)} autoFocus />
             <span className={"endpoint-keystat mono" + (keyed ? " ok" : "")}>
               <span className={"endpoint-dot" + (keyed ? " on" : "")}></span>
-              {keyed ? "key stored locally · ready" : demoAvailable ? "no key · chat runs on the shared free demo model" : "add a key to run live queries"}
+              {keyed ? "key stored locally · ready" : "add a key to pick an OpenRouter model"}
             </span>
             <span className="endpoint-keystat">
               Your key goes straight to OpenRouter, never to this server.{" "}
@@ -175,18 +249,13 @@ function ConnectionControl({ apiKey, setApiKey, model, setModel, demoAvailable }
 
 }
 
-/* Shown when a turn needs the visitor's own OpenRouter key: the keyless demo
-   hit its daily cap, or they tried agentic search (which runs on their key).
-   The key never touches the server — it lives in localStorage and goes
-   browser-direct to OpenRouter. */
+/* Shown when a turn needs the visitor's own OpenRouter key — today that's
+   agentic search, which runs server-side on it. The key never touches this
+   server's storage: it lives in localStorage and goes with the request. */
 const KEY_MODAL_COPY = {
-  quota: {
-    h: "Today's free demo is used up",
-    p: "Answers here run on a shared free model with a daily cap, and it just ran out. Add your own OpenRouter key to keep chatting — and to switch to stronger models like GPT-4o or Claude.",
-  },
   agentic: {
     h: "Agentic search needs your key",
-    p: "The search agent runs server-side on your OpenRouter key, so it isn't part of the free demo. Add a key to try it — regular chat keeps working without one.",
+    p: "The search agent runs server-side on your OpenRouter key. Add one to try it — regular chat works without it, on Ollama or your own OpenRouter models.",
   },
 };
 function KeyModal({ open, onSave, onClose }) {
@@ -201,7 +270,7 @@ function KeyModal({ open, onSave, onClose }) {
     return () => document.removeEventListener("keydown", onEsc);
   }, [open, onClose]);
   if (!open) return null;
-  const copy = KEY_MODAL_COPY[open] || KEY_MODAL_COPY.quota;
+  const copy = KEY_MODAL_COPY[open] || KEY_MODAL_COPY.agentic;
   const valid = val.trim().length > 0;
   const save = () => valid && onSave(val.trim());
   return (
@@ -231,7 +300,21 @@ function App() {
     return (valid.includes(h) && h) || localStorage.getItem("sr-tab") || "chat";
   });
   const [navOpen, setNavOpen] = useState(false);
-  const [model, setModel] = useState("openai/gpt-4o-mini");
+  // Provider + model survive reloads, with one remembered model per provider
+  // so switching back doesn't clobber the other side's choice.
+  const modelStoreKey = (p) => (p === "ollama" ? "sr-ollama-model" : "sr-or-model");
+  const defaultModel = (p) => (p === "ollama" ? "" : "openai/gpt-4o-mini");
+  const [provider, setProviderRaw] = useState(() => localStorage.getItem("sr-provider") || "openrouter");
+  const [model, setModelRaw] = useState(() => {
+    const p = localStorage.getItem("sr-provider") || "openrouter";
+    return localStorage.getItem(modelStoreKey(p)) || defaultModel(p);
+  });
+  const setModel = (v) => {setModelRaw(v);localStorage.setItem(modelStoreKey(provider), v);};
+  const setProvider = (p) => {
+    setProviderRaw(p);
+    localStorage.setItem("sr-provider", p);
+    setModelRaw(localStorage.getItem(modelStoreKey(p)) || defaultModel(p));
+  };
   const [apiKey, setApiKeyRaw] = useState(() => localStorage.getItem("sr-key") || "");
   const setApiKey = (v) => {setApiKeyRaw(v);localStorage.setItem("sr-key", v);};
   const [settings, setSettings] = useState({ route: "auto", routingMode: "", topk: 5, paper: "" });
@@ -240,7 +323,6 @@ function App() {
   const [papers, setPapers] = useState([]);
   const [figures, setFigures] = useState(null);
   const [pagesAvailable, setPagesAvailable] = useState(false);
-  const [demoAvailable, setDemoAvailable] = useState(false);
   const [routingAvailable, setRoutingAvailable] = useState(true);
   const [uploadAvailable, setUploadAvailable] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
@@ -263,7 +345,7 @@ function App() {
     // routing_available must be POSITIVELY confirmed — a failed /health (or
     // an older server without the field) should not leave routing controls
     // offered on a deployment that can't honor them.
-    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setDemoAvailable(!!h.demo_available); setRoutingAvailable(h.routing_available === true); setUploadAvailable(!!h.upload_available); });
+    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setRoutingAvailable(h.routing_available === true); setUploadAvailable(!!h.upload_available); });
   }, []);
 
   // apply tweaks → CSS
@@ -297,7 +379,7 @@ function App() {
           </div>
           <div className="topbar-right">
             {(tab === "chat" || tab === "inspection") &&
-            <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} model={model} setModel={setModel} demoAvailable={demoAvailable} />
+            <ConnectionControl apiKey={apiKey} setApiKey={setApiKey} provider={provider} setProvider={setProvider} model={model} setModel={setModel} />
             }
           </div>
         </div>
@@ -307,9 +389,9 @@ function App() {
               destroy the conversation while the chat itself points users at
               the Papers and Figures tabs. */}
           <div style={{ display: tab === "chat" ? "contents" : "none" }}>
-            <ChatView settings={settings} set={set} apiKey={apiKey} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} demoAvailable={demoAvailable} routingAvailable={routingAvailable} onNeedKey={(reason) => setKeyModalOpen(reason || "quota")} />
+            <ChatView settings={settings} set={set} apiKey={apiKey} provider={provider} model={model} papers={papers} figures={figures} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} onNeedKey={() => setKeyModalOpen("agentic")} />
           </div>
-          {tab === "inspection" && <InspectionView settings={settings} apiKey={apiKey} model={model} papers={papers} pagesAvailable={pagesAvailable} routingAvailable={routingAvailable} />}
+          {tab === "inspection" && <InspectionView settings={settings} papers={papers} routingAvailable={routingAvailable} />}
           {tab === "papers" && <PapersView setTab={setTab} papers={papers} figures={figures} uploadAvailable={uploadAvailable} onUploaded={reloadCorpus} />}
           {tab === "figures" && <FiguresView figures={figures} />}
           {tab === "why" && <WhyView setTab={setTab} routingAvailable={routingAvailable} />}
