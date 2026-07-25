@@ -1,11 +1,9 @@
 # ADR 0027 — Keyless demo chat through a caged server-side OpenRouter key
 
-**Status:** Accepted. The deployed demo answers chat turns without a visitor
-key via `POST /demo/chat`: the server proxies OpenRouter with its own
-dedicated key, restricted so that abuse cannot spend money — only exhaust a
-bounded daily quota. BYOK stays the primary generation path and the upgrade
-path for stronger models.
-**Date:** 2026-06-09.
+**Status:** Superseded by [0031](./0031-provider-menu-byok-or-ollama.md).
+The caged demo key was invalidated upstream and `/demo/chat` removed with it;
+generation now runs on the visitor's own provider.
+**Date:** 2026-06-09. Superseded 2026-07-25.
 
 ## Context
 

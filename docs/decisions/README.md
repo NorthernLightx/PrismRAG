@@ -30,7 +30,8 @@ kept on purpose.
 - [0024](./0024-route-by-fit-page-selector.md) — Route-by-fit: feed the whole document when it fits context, else top-k RAG
 - [0025](./0025-structured-extraction-augments-reading.md) — Structured extraction (tables/charts → text) augments the reader
 - [0026](./0026-dci-evaluated-experimental-opt-in.md) — Direct Corpus Interaction (DCI): a text-IR method, shipped as an experimental opt-in
-- [0027](./0027-keyless-demo-chat.md) — Keyless demo chat through a caged server-side OpenRouter key
+- [0027](./0027-keyless-demo-chat.md) — Keyless demo chat through a caged server-side OpenRouter key (superseded by 0031)
 - [0028](./0028-persisted-visual-index-cpu-serve.md) — Persisted ColQwen2 page index for CPU serving
 - [0029](./0029-runtime-document-upload.md) — Runtime document upload (flag-gated, text-leg, incremental)
 - [0030](./0030-frontend-backend-split.md) — Split the frontend off the backend image
+- [0031](./0031-provider-menu-byok-or-ollama.md) — Provider menu: generation on the visitor's own provider (OpenRouter BYOK or local Ollama)
