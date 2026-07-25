@@ -1,7 +1,7 @@
 """Local web/ with the PROD backend proxied behind it.
 
 Serves the working-tree frontend while forwarding /health /papers /figures
-/pages/* /query /demo/chat to the live deployment — full end-to-end testing
+/pages/* /query to the live deployment — full end-to-end testing
 of uncommitted client code against the real model and corpus, no deploy.
 """
 
@@ -49,7 +49,7 @@ class H(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self) -> None:
-        if self.path.startswith(("/query", "/demo/chat")):
+        if self.path.startswith("/query"):
             return self._proxy()
         self.send_error(404)
 
