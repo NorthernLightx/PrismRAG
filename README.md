@@ -99,7 +99,7 @@ uv sync --extra dev
 uv run spectrarag serve
 ```
 
-Open <http://localhost:8000/> and query the 20-paper demo corpus (text
+Open <http://localhost:8000/> and query the bundled demo corpus (text
 retrieval; set `RAG_ENABLE_MULTIMODAL=true` to also run the visual router over
 the committed page index). To generate answers, pick a provider in the
 top-right model menu: your OpenRouter key, or a local Ollama vision model.
@@ -112,7 +112,7 @@ cp .env.example .env
 docker compose up -d qdrant ollama
 docker exec rag-ollama ollama pull bge-m3
 
-# fetch the demo corpus (20 arXiv papers from the committed manifest), then ingest
+# fetch the demo corpus (arXiv papers from the committed manifest), then ingest
 uv run python -m scripts.fetch_papers --manifest data/curated_demo/papers.txt
 uv run python -m scripts.bootstrap_corpus --pdf-dir data/papers
 uv run uvicorn src.api.main:app --reload --port 8000
@@ -156,8 +156,9 @@ API surface:
 
 ## Bring your own PDFs
 
-The bundled demo corpus is a fixed 20-paper set. Point the ingester at any
-directory to replace it:
+The bundled demo corpus is a fixed set of arXiv papers
+(`data/curated_demo/papers.txt`). Point the ingester at any directory to
+replace it:
 
 ```bash
 mkdir mydocs                                # drop your .pdf files here
@@ -249,7 +250,7 @@ compares to other document-RAG tools, see
 ## Limitations
 
 - **The demo corpus is text-heavy.** Visual routing is on, but the baked
-  20-paper arXiv set has few figure or table answers, so the visual lift you
+  arXiv set has few figure or table answers, so the visual lift you
   see here is small. The +35 % above is the MMLongBench result, not what these
   papers will show.
 - **Generation needs a provider.** Chat answers require an OpenRouter key or
