@@ -109,12 +109,21 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
     }
   }, [menu, provider]);
 
-  // First Ollama pick is automatic: the provider is unusable without a model,
-  // and the first listed vision model is as good a start as any.
+  // Probe Ollama at mount too (all local calls): a persisted model that was
+  // retired upstream since the last visit gets swapped for a usable one
+  // before the first ask, not only when the menu happens to open.
   useEffect(() => {
-    if (provider === "ollama" && !model && ollama && ollama.ok && ollama.models.length > 0) {
-      setModel(ollama.models[0].id);
-    }
+    if (provider === "ollama") window.RAG.loadOllamaModels().then(setOllama);
+  }, [provider]);
+
+  // First Ollama pick is automatic: the provider is unusable without a model.
+  // Also fires when the persisted pick is no longer listed (retired cloud
+  // model, or removed with `ollama rm`) — the first usable model takes over
+  // instead of erroring at generation.
+  useEffect(() => {
+    if (provider !== "ollama" || !ollama || !ollama.ok || ollama.models.length === 0) return;
+    if (model && ollama.models.some((m) => m.id === model)) return;
+    setModel(ollama.models[0].id);
   }, [provider, model, ollama]);
 
   const toggle = (which) => setMenu(menu === which ? null : which);

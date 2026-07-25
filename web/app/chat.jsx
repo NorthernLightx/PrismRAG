@@ -54,7 +54,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
             { value: "hybrid", label: "hybrid", disabled: noRouter, disabledTitle: offTitle },
             { value: "agentic", label: "agentic" }]} />
         {noRouter &&
-        <span className="field-note">visual routing needs the GPU leg — off on this CPU deployment (offline: +35% recall over text-only); figure questions still work via page images</span>
+        <span className="field-note">visual routing is off — enable it with RAG_ENABLE_MULTIMODAL=true (offline: +35% recall over text-only); figure questions still work via page images</span>
         }
       </div>
       <div className="field">
@@ -83,7 +83,7 @@ function AdvancedPanel({ settings, set, papers, routingAvailable }) {
 }
 
 function EmptyState({ onAsk, routingAvailable }) {
-  // Without the multimodal router (CPU-only deploys) every turn retrieves
+  // Without the multimodal router (RAG_ENABLE_MULTIMODAL off) every turn retrieves
   // text-side, so don't advertise per-question routes on the chips.
   const noRouter = routingAvailable === false;
   return (
@@ -284,7 +284,7 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           <h4>Routing decision</h4>
           {routingAvailable === false ? (
             <div className="route-card">
-              <span className="cand-src">router off on this CPU-only deployment — offline it measures <b>+35% recall</b> over text-only retrieval on MMLongBench (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>). Here every turn retrieves text-side; figure questions read the page images at generation.</span>
+              <span className="cand-src">visual router off (set RAG_ENABLE_MULTIMODAL=true to turn it on) — offline it measures <b>+35% recall</b> over text-only retrieval on MMLongBench (<a href="https://github.com/NorthernLightx/SpectraRAG/blob/main/docs/results.md" target="_blank" rel="noopener">results</a>). Every turn retrieves text-side; figure questions read the page images at generation.</span>
             </div>
           ) : (
             <div className="route-card">

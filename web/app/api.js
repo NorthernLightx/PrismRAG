@@ -57,7 +57,11 @@
 
   // Local Ollama vision models. /api/tags reports per-model `capabilities`
   // (Ollama ≥0.4), so one request tells us which models can read page images.
-  // { ok: false } when Ollama isn't reachable; `force` re-probes (Retry button).
+  // Models with a `remote_host` are ollama.com cloud passthroughs — they can
+  // be retired upstream while still listed locally, so each gets an /api/show
+  // probe (returns the retirement error without spending cloud quota) and
+  // retired ones are dropped from the list. Truly local models sort first.
+  // { ok: false } when Ollama isn't reachable; `force` re-probes.
   let _ollamaModels = null;
   function loadOllamaModels(force) {
     if (_ollamaModels && !force) return _ollamaModels;
@@ -65,18 +69,32 @@
     const timer = setTimeout(() => ctrl.abort(), 2000);
     _ollamaModels = fetch(`${OLLAMA_URL}/api/tags`, { signal: ctrl.signal })
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
+      .then(async (data) => {
         if (!data || !Array.isArray(data.models)) return { ok: false };
         const models = data.models
           .filter((m) => (m.capabilities || []).includes("vision"))
           .map((m) => {
             const d = m.details || {};
+            const cloud = !!m.remote_host;
             const bits = [];
+            if (cloud) bits.push("cloud");
             if (d.parameter_size) bits.push(d.parameter_size);
             if (d.context_length) bits.push(`${Math.round(d.context_length / 1000)}k ctx`);
-            return { id: m.name, note: bits.join(" · ") };
-          });
-        return { ok: true, models };
+            return { id: m.name, note: bits.join(" · "), cloud, dead: false };
+          })
+          .sort((a, b) => (a.cloud === b.cloud ? a.id.localeCompare(b.id) : a.cloud ? 1 : -1));
+        await Promise.all(models.filter((m) => m.cloud).map(async (m) => {
+          try {
+            const r = await fetch(`${OLLAMA_URL}/api/show`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ model: m.id }),
+            });
+            const d = await r.json();
+            if (d && d.error) m.dead = true;
+          } catch { /* probe failure is not proof of retirement — leave usable */ }
+        }));
+        return { ok: true, models: models.filter((m) => !m.dead) };
       })
       .catch(() => ({ ok: false }))
       .finally(() => clearTimeout(timer));
