@@ -236,15 +236,13 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
   // Evidence-mix bars reflect what the answer CITED, not just what was
   // retrieved. On a text route the model can still cite page images attached at
   // generation, so a retrieval-only split falsely reads 100% text. Count cited
-  // modality (page_cite / fig_cite / visual candidates all carry kind "visual");
-  // fall back to the retrieved-candidate mix before any citations exist.
+  // modality (page_cite / fig_cite / visual candidates all carry kind "visual").
+  // Rendered only once citations exist: a retrieved-mix placeholder would show
+  // one basis during streaming and silently switch to another when the answer
+  // lands, so the bars appear with their final value or not at all.
   const cites = turn.citations || [];
   const visCited = cites.filter((c) => c.kind === "visual").length;
-  const visShare = cites.length
-    ? Math.round((visCited / cites.length) * 100)
-    : total
-      ? Math.round((vis.length / total) * 100)
-      : 0;
+  const visShare = cites.length ? Math.round((visCited / cites.length) * 100) : 0;
   const txtShare = 100 - visShare;
   const citedNum = (c) => {
     const ct = (turn.citations || []).find((x) => x.id === c.chunk_id);
@@ -285,10 +283,12 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           ) : (
             <div className="route-card">
               <div className="gate"><RoutePill route={turn.route || "text"} /><span className="cand-src" style={{ marginLeft: "auto" }}>mode: {turn.mode || settings.route}</span></div>
-              <div className="route-bars">
-                <div className="rb"><span className="lbl">text</span><div className="scorebar"><i style={{ width: txtShare + "%" }}></i></div><span className="pct">{txtShare}%</span></div>
-                <div className="rb"><span className="lbl">visual</span><div className="scorebar visual"><i style={{ width: visShare + "%" }}></i></div><span className="pct">{visShare}%</span></div>
-              </div>
+              {cites.length > 0 && (
+                <div className="route-bars">
+                  <div className="rb"><span className="lbl">text</span><div className="scorebar"><i style={{ width: txtShare + "%" }}></i></div><span className="pct">{txtShare}%</span></div>
+                  <div className="rb"><span className="lbl">visual</span><div className="scorebar visual"><i style={{ width: visShare + "%" }}></i></div><span className="pct">{visShare}%</span></div>
+                </div>
+              )}
             </div>
           )}
         </div>
