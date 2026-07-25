@@ -139,8 +139,9 @@ Generation runs on a provider you pick in the model menu (ADR 0031). With an
 OpenRouter key, the chat call goes browser-direct to OpenRouter and the server
 never sees, logs, or stores the key; the model list is fetched live and
 filtered to vision-capable models. With a local Ollama, the browser talks to
-`localhost:11434` directly and lists whatever vision models you have pulled
-(`ollama pull qwen2.5vl:7b` is a good start). The one exception is the opt-in
+`localhost:11434` directly, lists your installed vision models, and can pull
+a suggested one (qwen2.5vl, granite3.2-vision, minicpm-v, llama3.2-vision)
+straight from the menu. The one exception is the opt-in
 DCI mode, whose agent runs server-side on your OpenRouter key: held in memory
 for that request only, never stored or logged. Retrieval needs no provider at
 all. Models receive the retrieved page PNGs as image blocks when
