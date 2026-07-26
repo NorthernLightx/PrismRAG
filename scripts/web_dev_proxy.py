@@ -7,11 +7,16 @@ of uncommitted client code against the real model and corpus, no deploy.
 
 import functools
 import http.server
+import os
+import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
 
-PROD = "https://spectrarag-ar6wxit42a-ew.a.run.app"
+# The deployed API base stays out of the repo (same rule as cloudbuild.web.yaml).
+PROD = os.environ.get("SPECTRARAG_PROD_URL", "").rstrip("/")
+if not PROD:
+    sys.exit("Set SPECTRARAG_PROD_URL to the deployed API base URL.")
 ROOT = str(Path(__file__).resolve().parents[1] / "web")
 
 
