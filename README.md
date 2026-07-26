@@ -10,7 +10,7 @@
 [![python 3.12](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/release/python-3120/)
 [![license: MIT](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
-**▶ Live demo: <https://spectrarag.web.app>**
+**▶ Live demo: <https://spectrarag-demo.web.app>**
 
 ![Asking what Figure 1 shows: the router sends the query to the visual retriever, and the answer cites the page image it came from](docs/assets/demo.gif)
 
