@@ -12,6 +12,8 @@
 
 **▶ Live demo: <https://spectrarag.web.app>**
 
+![Asking what Figure 1 shows: the router sends the query to the visual retriever, and the answer cites the page image it came from](docs/assets/demo.gif)
+
 ## The problem
 
 A PDF's text layer is only half the document. Ask an ordinary RAG system
