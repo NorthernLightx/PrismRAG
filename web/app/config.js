@@ -8,3 +8,7 @@
    `--build-arg API_BASE=...`. The URL itself is supplied at build time and is
    not committed. */
 window.SPECTRARAG_API_BASE = "";
+
+/* True only on hosted deploys (baked in with the API base): hides the local
+   Ollama provider option, which can't work from a public origin. */
+window.SPECTRARAG_HOSTED = false;

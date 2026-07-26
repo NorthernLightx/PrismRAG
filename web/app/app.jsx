@@ -78,6 +78,11 @@ const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
    (browser-direct with the visitor's key — required even on :free models, so
    keyless rows hand off to the key menu) and a local Ollama, whose vision
    models are listed live from /api/tags and need no key at all. */
+/* Hosted deploys bake window.SPECTRARAG_HOSTED=true into config.js: the page
+   is served from a public origin, so a visitor's local Ollama is unreachable
+   (its CORS only allows localhost origins) and the provider toggle is hidden. */
+const HOSTED = !!window.SPECTRARAG_HOSTED;
+
 function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, setModel }) {
   const [menu, setMenu] = useState(null); // null | "model" | "key"
   const [orList, setOrList] = useState(undefined); // undefined=unfetched, null=failed, []=vision models
@@ -183,12 +188,13 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
             <span className="endpoint-pop-title"><Icon name="server" size={13} /> Model</span>
             <span className="endpoint-pop-sub mono">{provider === "ollama" ? "localhost:11434" : "via OpenRouter"}</span>
           </div>
+          {!HOSTED &&
           <div className="endpoint-provider">
             <Segmented value={provider} onChange={setProvider} options={[
               { value: "openrouter", label: "OpenRouter" },
               { value: "ollama", label: "Ollama (local)" },
             ]} />
-          </div>
+          </div>}
           {provider === "openrouter" &&
           <React.Fragment>
             <div className="model-list">
@@ -312,7 +318,9 @@ function ConnectionControl({ apiKey, setApiKey, provider, setProvider, model, se
 const KEY_MODAL_COPY = {
   agentic: {
     h: "Agentic search needs your key",
-    p: "The search agent runs server-side on your OpenRouter key. Add one to try it — regular chat works without it, on Ollama or your own OpenRouter models.",
+    p: HOSTED
+      ? "The search agent runs server-side on your OpenRouter key. Add one to try it — regular chat also uses your key, straight from the browser."
+      : "The search agent runs server-side on your OpenRouter key. Add one to try it — regular chat works without it, on Ollama or your own OpenRouter models.",
   },
 };
 function KeyModal({ open, onSave, onClose }) {
@@ -361,9 +369,11 @@ function App() {
   // so switching back doesn't clobber the other side's choice.
   const modelStoreKey = (p) => (p === "ollama" ? "sr-ollama-model" : "sr-or-model");
   const defaultModel = (p) => (p === "ollama" ? "" : "openai/gpt-4o-mini");
-  const [provider, setProviderRaw] = useState(() => localStorage.getItem("sr-provider") || "openrouter");
+  // A persisted "ollama" pick is ignored on hosted pages (toggle is hidden there).
+  const storedProvider = () => (HOSTED ? "openrouter" : localStorage.getItem("sr-provider") || "openrouter");
+  const [provider, setProviderRaw] = useState(storedProvider);
   const [model, setModelRaw] = useState(() => {
-    const p = localStorage.getItem("sr-provider") || "openrouter";
+    const p = storedProvider();
     return localStorage.getItem(modelStoreKey(p)) || defaultModel(p);
   });
   const setModel = (v) => {setModelRaw(v);localStorage.setItem(modelStoreKey(provider), v);};
