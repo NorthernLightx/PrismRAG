@@ -4,4 +4,8 @@
 # Drop once the index ships in CI natively (ADR 0028 follow-up).
 FROM ghcr.io/northernlightx/spectrarag:main
 COPY --chown=app:app qdrant_local/collection/rag_corpus_visual /home/app/qdrant_local/collection/rag_corpus_visual
-COPY --chown=app:app qdrant_local/meta.json /home/app/qdrant_local/meta.json
+# meta.visual.json is the committed two-collection registry. Never COPY the
+# working-tree meta.json here: a local `spectrarag serve` run rewrites it
+# without the visual entry, and qdrant ignores collection dirs meta doesn't
+# list — the overlay would silently ship text-only.
+COPY --chown=app:app qdrant_local/meta.visual.json /home/app/qdrant_local/meta.json
