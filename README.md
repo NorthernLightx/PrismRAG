@@ -53,7 +53,9 @@ improved, the router retrieved a page the text leg never returned, while
 text-routed (factual) queries scored identically across both runs.
 MMLongBench-Doc answers are ~93 % visual, which rewards routing
 aggressively to the visual leg. On a text-heavy corpus the lift is smaller. Full methodology and failure modes are in
-[`docs/results.md`](./docs/results.md).
+[`docs/results.md`](./docs/results.md). For how measuring the end-to-end path
+overturned this project's own assumptions — and which fixes died under
+measurement — see [`docs/finding-the-bottleneck.md`](./docs/finding-the-bottleneck.md).
 
 ## How it works
 
