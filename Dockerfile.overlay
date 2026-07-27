@@ -1,0 +1,7 @@
+# Manual interim build: CI's text-only image + the offline visual index.
+# FROM the CI-baked main (encoder, code, uv venv, text qdrant) and add the
+# visual collection so RAG_ENABLE_MULTIMODAL lights up. Plain COPY, no BuildKit.
+# Drop once the index ships in CI natively (ADR 0028 follow-up).
+FROM ghcr.io/northernlightx/spectrarag:main
+COPY --chown=app:app qdrant_local/collection/rag_corpus_visual /home/app/qdrant_local/collection/rag_corpus_visual
+COPY --chown=app:app qdrant_local/meta.json /home/app/qdrant_local/meta.json

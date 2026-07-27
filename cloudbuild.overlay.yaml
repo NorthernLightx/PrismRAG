@@ -1,0 +1,14 @@
+# Build with the EU pool or the multi-GB push times out cross-region:
+#   gcloud builds submit --region=europe-west1 --config cloudbuild.overlay.yaml .
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'Dockerfile.overlay'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/spectrarag/spectrarag:visual'
+      - '.'
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/spectrarag/spectrarag:visual'
+timeout: '3600s'

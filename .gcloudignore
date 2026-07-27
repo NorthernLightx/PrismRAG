@@ -1,0 +1,29 @@
+# Overlay build context (gcloud builds submit). The overlay COPYs only
+# qdrant_local/ — nothing from data/ — so exclude everything heavy. Keeps the
+# upload to ~0.5 GiB (was 6.4 GiB). Must NOT list qdrant_local (gitignored
+# visual index the overlay needs).
+.git
+.github
+.venv
+__pycache__
+**/__pycache__
+**/*.pyc
+**/*.pyo
+.pytest_cache
+.mypy_cache
+.ruff_cache
+data/
+tools
+logs
+docs
+tests
+*.egg-info
+.coverage
+.env
+.envrc
+.claude
+htmlcov
+.worktrees
+node_modules
+output
+qdrant_local_old

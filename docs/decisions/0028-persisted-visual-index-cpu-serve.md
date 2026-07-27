@@ -94,3 +94,22 @@ persist the page multivectors in Qdrant.
   longer called in production (the visual leg reads the collection, not the page
   directory); it is retained for its unit tests and the `pages_dir` is still
   used to serve page images at generation.
+
+## Redeploy runbook (added 2026-07-27)
+
+The visual image is an overlay on CI's text-only `:main`: `Dockerfile.overlay`
+copies the gitignored `rag_corpus_visual` collection into the CI image, and
+`cloudbuild.overlay.yaml` builds/pushes it (both now committed). Deploying the
+moving `:main` tag or the CI `deploy.yml` workflow reverts prod to text-only —
+the index rides only in the overlay.
+
+```sh
+gcloud builds submit --region=europe-west1 --config cloudbuild.overlay.yaml .
+gcloud run deploy spectrarag --region=europe-west1 \
+    --image=<digest printed by the build> --memory=16Gi --cpu=4
+```
+
+Two constraints the hard way: the build must run in the EU pool
+(`--region=europe-west1`) or the multi-GB push to the EU registry times out
+from the default US pool, and the deploy should use the image *digest*, not the
+`:visual` tag, to dodge stale registry manifests.
