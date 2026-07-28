@@ -393,6 +393,8 @@ function App() {
   const [routingAvailable, setRoutingAvailable] = useState(true);
   const [uploadAvailable, setUploadAvailable] = useState(false);
   const [keyModalOpen, setKeyModalOpen] = useState(false);
+  // "probing" | "cold" | "ready" — drives the cold-start banner.
+  const [backendWarm, setBackendWarm] = useState("probing");
 
   const setTheme = (th) => {setThemeRaw(th);localStorage.setItem("sr-theme", th);};
   useEffect(() => {document.documentElement.setAttribute("data-theme", theme);}, [theme]);
@@ -407,12 +409,22 @@ function App() {
   // PNGs are mounted (gates vision generation). Best-effort; on failure the
   // defaults (empty list, no images) keep the UI working.
   useEffect(() => {
+    // The API scales to zero and holds every request until startup init
+    // (model loading) finishes, so a cold instance answers /health only after
+    // ~2 minutes. No reply within a few seconds means a cold start is in
+    // progress — show the banner instead of silently empty tabs.
+    const coldTimer = setTimeout(() => setBackendWarm((s) => (s === "probing" ? "cold" : s)), 3000);
     window.RAG.loadPapers().then(setPapers);
     window.RAG.loadFigures().then(setFigures);
     // routing_available must be POSITIVELY confirmed — a failed /health (or
     // an older server without the field) should not leave routing controls
     // offered on a deployment that can't honor them.
-    window.RAG.loadHealth().then((h) => { setPagesAvailable(!!h.pages_available); setRoutingAvailable(h.routing_available === true); setUploadAvailable(!!h.upload_available); });
+    window.RAG.loadHealth().then((h) => {
+      clearTimeout(coldTimer);
+      setBackendWarm("ready");
+      setPagesAvailable(!!h.pages_available); setRoutingAvailable(h.routing_available === true); setUploadAvailable(!!h.upload_available);
+    });
+    return () => clearTimeout(coldTimer);
   }, []);
 
   // apply tweaks → CSS
@@ -450,6 +462,12 @@ function App() {
             }
           </div>
         </div>
+
+        {backendWarm === "cold" &&
+        <div className="warmup" role="status">
+          <span className="warmup-dot"></span>
+          <span>The backend is waking up — loading the retrieval models takes a minute or two. The page fills in on its own.</span>
+        </div>}
 
         <div className="view">
           {/* ChatView stays mounted across tab switches — unmounting would
