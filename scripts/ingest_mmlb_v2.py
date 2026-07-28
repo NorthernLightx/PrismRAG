@@ -57,6 +57,8 @@ async def run(args: argparse.Namespace) -> int:
     golden = yaml.safe_load(args.golden.read_text(encoding="utf-8"))
     want = sorted({q["paper_id"] for q in golden["queries"]})
     pdfs = {p.stem: p for p in args.docs_dir.glob("*.pdf")}
+    if args.only:
+        want = [pid for pid in want if pid in set(args.only)]
     targets = [(pid, pdfs[pid]) for pid in want if pid in pdfs]
     missing = [pid for pid in want if pid not in pdfs]
     if args.limit:
@@ -124,6 +126,16 @@ def main() -> None:
     ap.add_argument("--ollama", default="http://localhost:11434")
     ap.add_argument(
         "--limit", type=int, default=0, help="ingest only the first N target docs (0=all)"
+    )
+    ap.add_argument(
+        "--only",
+        nargs="+",
+        default=None,
+        help=(
+            "Restrict to these paper_ids. Docling drops pages to std::bad_alloc on "
+            "long documents once a process is fragmented, so repairs re-run one "
+            "document per process."
+        ),
     )
     ap.add_argument(
         "--progress", type=Path, default=Path("data/eval/runs/ingest_mmlb_v2_progress.json")
