@@ -36,7 +36,12 @@ from src.eval.metrics_retrieval import ndcg_at_k, recall_at_k, reciprocal_rank
 from src.eval.report import write_run_json, write_run_markdown
 from src.ingestion.visual import render_pages
 from src.observability.logging import configure_logging, get_logger
-from src.rag.retrievers.visual import build_visual_retriever
+from src.rag.retrievers.visual import (
+    VisualRetriever,
+    build_visual_retriever,
+    load_visual_model,
+)
+from src.rag.visual_store import QdrantVisualStore
 from src.types import (
     EvalRun,
     GoldenQuery,
@@ -76,6 +81,8 @@ async def _main(
     dpi: int,
     model_name: str,
     device: str,
+    visual_collection: str | None = None,
+    qdrant_url: str = "path:./qdrant_local",
 ) -> None:
     log = get_logger("scripts.eval_visual")
     log.info(
@@ -83,17 +90,33 @@ async def _main(
         pdfs=[str(p) for p in pdf_paths],
         golden=str(golden_path),
         model=model_name,
+        collection=visual_collection or "",
     )
 
-    pages_by_paper: dict[str, list[tuple[int, Path]]] = {}
-    for pdf_path in pdf_paths:
-        paper_id = pdf_path.stem
-        rendered = render_pages(paper_id, pdf_path, out_dir=pages_dir, dpi=dpi)
-        pages_by_paper[paper_id] = [(p.page_number, p.image_path) for p in rendered]
-        print(f"Rendered {len(rendered)} pages for {paper_id}")
+    store: QdrantVisualStore | None = None
+    if visual_collection is not None:
+        # Score against a persisted page index (ADR 0028) instead of embedding
+        # every page here. A benchmark-scale corpus does not fit in VRAM as
+        # in-memory tensors, and this is the path the deploy actually serves.
+        model, processor = await load_visual_model(model_name, device)
+        store = QdrantVisualStore(url=qdrant_url, collection_name=visual_collection)
+        n_pages = await store.count()
+        if n_pages == 0:
+            raise SystemExit(f"Visual collection {visual_collection!r} is empty at {qdrant_url}")
+        print(f"Scoring against {n_pages} persisted pages in {visual_collection!r}")
+        retriever = VisualRetriever(model=model, processor=processor, store=store, device=device)
+    else:
+        pages_by_paper: dict[str, list[tuple[int, Path]]] = {}
+        for pdf_path in pdf_paths:
+            paper_id = pdf_path.stem
+            rendered = render_pages(paper_id, pdf_path, out_dir=pages_dir, dpi=dpi)
+            pages_by_paper[paper_id] = [(p.page_number, p.image_path) for p in rendered]
+            print(f"Rendered {len(rendered)} pages for {paper_id}")
 
-    print(f"Loading {model_name} and embedding pages on {device}...")
-    retriever = await build_visual_retriever(pages_by_paper, model_name=model_name, device=device)
+        print(f"Loading {model_name} and embedding pages on {device}...")
+        retriever = await build_visual_retriever(
+            pages_by_paper, model_name=model_name, device=device
+        )
 
     golden_set = load_golden_set(golden_path)
     print(
@@ -142,9 +165,12 @@ async def _main(
             "dpi": dpi,
             "paper_ids": [p.stem for p in pdf_paths],
             "embedding_model": model_name,
+            "visual_collection": visual_collection or "",
         },
         per_query=per_query,
     )
+    if store is not None:
+        await store.close()
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     json_path = output_dir / f"run-visual-{timestamp}.json"
@@ -158,7 +184,13 @@ async def _main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--pdf", type=Path, required=True, nargs="+")
+    parser.add_argument("--pdf", type=Path, nargs="+", default=[])
+    parser.add_argument(
+        "--visual-collection",
+        default=None,
+        help="Score against this persisted page index instead of embedding --pdf pages.",
+    )
+    parser.add_argument("--qdrant", default="path:./qdrant_local")
     parser.add_argument("--golden", type=Path, default=Path("data/golden/v3.yaml"))
     parser.add_argument("--output-dir", type=Path, default=Path("data/eval/runs"))
     parser.add_argument("--pages-dir", type=Path, default=Path("data/pages"))
@@ -167,6 +199,8 @@ if __name__ == "__main__":
     parser.add_argument("--model", default="vidore/colqwen2-v1.0")
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
+    if not args.pdf and args.visual_collection is None:
+        parser.error("pass --pdf ... or --visual-collection <name>")
 
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     log_file = Path("logs") / f"eval-visual-{timestamp}.log"
@@ -183,5 +217,7 @@ if __name__ == "__main__":
             dpi=args.dpi,
             model_name=args.model,
             device=args.device,
+            visual_collection=args.visual_collection,
+            qdrant_url=args.qdrant,
         )
     )

@@ -126,6 +126,7 @@ async def _main(
     router_classifier_model: str,
     visual_model: str,
     visual_device: str,
+    visual_collection: str | None,
     pages_dir: Path,
     pages_dpi: int,
     agentic: bool,
@@ -292,7 +293,7 @@ async def _main(
         # pages first (idempotent — render_pages caches), then build ColQwen2
         # page embeddings (slow, GPU-heavy).
         pages_by_paper: dict[str, list[tuple[int, Path]]] = {}
-        for pdf_path in pdf_paths:
+        for pdf_path in pdf_paths if not visual_collection else []:
             paper_id = pdf_path.stem
             rendered = render_pages(paper_id, pdf_path, out_dir=pages_dir, dpi=pages_dpi)
             pages_by_paper[paper_id] = [(p.page_number, p.image_path) for p in rendered]
@@ -341,9 +342,29 @@ async def _main(
                     print("No Ollama models resident; skipping eviction step.")
             except _httpx.HTTPError as e:
                 print(f"Ollama eviction skipped ({e!r}); continuing.")
-        visual_retriever = await build_visual_retriever(
-            pages_by_paper, model_name=visual_model, device=visual_device
-        )
+        if visual_collection:
+            # Score against a persisted page index (ADR 0028) — the serve path.
+            # A benchmark-scale corpus does not fit in VRAM as in-memory tensors,
+            # and re-encoding thousands of pages per eval run is unaffordable.
+            from src.rag.retrievers.visual import VisualRetriever, load_visual_model
+            from src.rag.visual_store import QdrantVisualStore
+
+            _vis_model, _vis_processor = await load_visual_model(visual_model, visual_device)
+            visual_store = QdrantVisualStore(url=qdrant_url, collection_name=visual_collection)
+            n_visual_pages = await visual_store.count()
+            if n_visual_pages == 0:
+                raise SystemExit(f"Visual collection {visual_collection!r} is empty")
+            print(f"Scoring the visual leg against {n_visual_pages} persisted pages")
+            visual_retriever = VisualRetriever(
+                model=_vis_model,
+                processor=_vis_processor,
+                store=visual_store,
+                device=visual_device,
+            )
+        else:
+            visual_retriever = await build_visual_retriever(
+                pages_by_paper, model_name=visual_model, device=visual_device
+            )
         # ADR 0013: the regex classifier (default) under-fires on MMLongBench
         # natural-language queries; the live API ships the LLM zero-shot
         # classifier instead. --router-classifier=llm builds that same
@@ -796,6 +817,14 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--visual-collection",
+        default=None,
+        help=(
+            "Persisted page index to score the visual leg against (ADR 0028) "
+            "instead of embedding --pdf pages into memory. Read from --qdrant."
+        ),
+    )
+    parser.add_argument(
         "--visual-model",
         default="vidore/colqwen2-v1.0",
         help=(
@@ -994,6 +1023,7 @@ if __name__ == "__main__":
             router_classifier=args.router_classifier,
             router_classifier_model=args.router_classifier_model,
             visual_model=args.visual_model,
+            visual_collection=args.visual_collection,
             visual_device=args.visual_device,
             pages_dir=args.pages_dir,
             pages_dpi=args.pages_dpi,
