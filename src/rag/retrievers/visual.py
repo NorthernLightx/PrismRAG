@@ -169,9 +169,19 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
         ColQwen2_5,
         ColQwen2_5_Processor,
         ColQwen2Processor,
+        ColQwen3,
+        ColQwen3_5,
+        ColQwen3_5Processor,
+        ColQwen3Processor,
     )
 
+    # Order matters: the point-release names contain the base name as a
+    # substring, so the more specific prefix has to be tested first.
     name = model_name.lower()
+    if "colqwen3.5" in name:
+        return ColQwen3_5, ColQwen3_5Processor
+    if "colqwen3" in name:
+        return ColQwen3, ColQwen3Processor
     if "colqwen2.5" in name:
         return ColQwen2_5, ColQwen2_5_Processor
     if "colqwen2" in name:
@@ -180,7 +190,7 @@ def _select_col_classes(model_name: str) -> tuple[Any, Any]:
         return ColPali, ColPaliProcessor
     raise ValueError(
         f"unsupported visual model {model_name!r} — expected a vidore/colqwen2*, "
-        "vidore/colqwen2.5*, or vidore/colpali* checkpoint"
+        "vidore/colqwen2.5*, vidore/colqwen3*, or vidore/colpali* checkpoint"
     )
 
 
