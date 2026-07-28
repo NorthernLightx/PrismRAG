@@ -98,6 +98,7 @@ data/eval/ingestion/vlm-spike/*.png
 data/figures/
 data/pages_dpi*/
 data/mmlongbench/
+data/mmdocir/
 data/dci/
 data/ingestion_study/
 data/tiny_figures_inspect/
