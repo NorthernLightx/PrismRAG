@@ -429,6 +429,7 @@ async def _main(
             prompt=load_prompt_by_name("answer"),
             model=generator_model,
             refusal_score_threshold=refusal_score_threshold,
+            pages_dir=pages_dir,
         )
         print(f"Generating answers via {generator_provider} with {generator_model}")
 

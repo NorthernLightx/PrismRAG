@@ -148,9 +148,18 @@ class Generator:
                 continue
             paper = m.group("paper")
             page = int(m.group("page"))
-            img_path = self._pages_dir / paper / f"{paper}_p{page}.png"
-            if not img_path.exists():
-                _log.warning("generate.image_missing", path=str(img_path), chunk=r.chunk_id)
+            # Benchmark corpora ship pre-rendered JPEGs (scripts.fetch_mmdocir)
+            # while render_pages writes PNG, so both suffixes are accepted.
+            for suffix in (".png", ".jpg", ".jpeg"):
+                img_path = self._pages_dir / paper / f"{paper}_p{page}{suffix}"
+                if img_path.exists():
+                    break
+            else:
+                _log.warning(
+                    "generate.image_missing",
+                    path=str(self._pages_dir / paper / f"{paper}_p{page}.png"),
+                    chunk=r.chunk_id,
+                )
                 continue
             out.append(img_path)
             if len(out) >= self._max_vision_images:

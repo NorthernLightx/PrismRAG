@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import base64
+from pathlib import Path
 from typing import Any
 
 import httpx
@@ -13,6 +15,18 @@ from src.llm.protocol import ChatResponse, Message
 # or under client-side concurrency (Ollama serializes by default), so we use a
 # generous read timeout. Cloud LLMs return in <10s and aren't sensitive to this.
 _DEFAULT_TIMEOUT_SECONDS = 600.0
+
+
+def _encode_image(image: Any) -> str:
+    """Base64-encode one image for Ollama: a path, raw bytes, or an existing string."""
+    if isinstance(image, str):
+        return image
+    if isinstance(image, bytes):
+        return base64.b64encode(image).decode("ascii")
+    path = Path(image)
+    if not path.exists():
+        return ""
+    return base64.b64encode(path.read_bytes()).decode("ascii")
 
 
 class OllamaChatClient:
@@ -60,12 +74,6 @@ class OllamaChatClient:
         images: list[Any] | None = None,
         **kwargs: Any,
     ) -> ChatResponse:
-        # `images` is part of LLMClient for OpenRouter vision support; this
-        # local-Ollama client doesn't pipe images through `/api/chat` (Ollama
-        # has a different per-message base64 image field that isn't worth
-        # bridging until a local vision generator becomes a goal). Silently
-        # ignored so the protocol stays uniform.
-        del images  # unused
         options: dict[str, Any] = {"temperature": temperature}
         if max_tokens is not None:
             options["num_predict"] = max_tokens
@@ -75,9 +83,22 @@ class OllamaChatClient:
         for key, value in kwargs.items():
             options.setdefault(key, value)
 
+        # Ollama takes images as a per-message list of base64 strings, not as
+        # OpenAI-style content blocks. They attach to the last user message, the
+        # one carrying the question and context.
+        payload_messages: list[dict[str, Any]] = [m.model_dump() for m in messages]
+        if images:
+            encoded = [_encode_image(i) for i in images]
+            encoded = [e for e in encoded if e]
+            if encoded:
+                for msg in reversed(payload_messages):
+                    if msg.get("role") == "user":
+                        msg["images"] = encoded
+                        break
+
         payload: dict[str, Any] = {
             "model": model,
-            "messages": [m.model_dump() for m in messages],
+            "messages": payload_messages,
             "stream": False,
             "options": options,
         }
