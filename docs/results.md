@@ -264,6 +264,39 @@ retrieval-only measurement above and its run-ids differ deliberately.
 | answer_relevance | 0.6812 | 0.6879 | +1.0 % |
 | context_precision | 0.4315 | 0.4369 | +1.3 % |
 
+## MMDocIR: where routing stops paying
+
+The MMLongBench numbers above rest on n=107 with a confidence interval near
+±0.06, wide enough that a +0.05 effect is invisible. MMDocIR
+([2501.08828](https://arxiv.org/abs/2501.08828)) at `--page-cap 60` gives 1,127
+queries over 218 documents and 4,837 pages. Reported on the 1,029 whose
+documents do not appear in the MMLongBench baseline corpus; the 98 overlapping
+queries score slightly *worse* (0.759 against 0.800), so there is no tuning
+advantage to remove.
+
+| arm | recall@10 | median latency |
+|---|---|---|
+| text-only | 0.460 ±0.030 | 4,265 ms |
+| classifier router | 0.621 ±0.030 | 5,860 ms |
+| **always-hybrid** | **0.784 ±0.025** | 5,843 ms |
+| visual-only | 0.800 ±0.024 | 983 ms |
+
+The router reproduces its MMLongBench story, +35 % over text-only, and is then
+beaten by always fusing, +0.163 (better on 191 queries, worse on 3), at the same
+median latency. The loss is the routing decision: on the 555 queries it sends to
+the text leg it scores 0.436 where the visual leg alone reaches 0.784. Query mix,
+corpus text density and page budget were each tested as alternative explanations
+and none holds. See [ADR 0032](./decisions/0032-routing-is-a-cost-lever.md);
+receipts under `data/eval/baseline-mmdocir-*.json`.
+
+Answering is a separate ceiling. On a 150-query subset read by `gemma-4-26b`, the
+retrieval gain converts only where routing changes what is retrieved (n=18: 0.333
+against 0.000, p=0.016). Of the queries whose gold evidence did reach the reader,
+46 % were refused and 11 % answered wrongly, and rendering pages at 150 DPI
+instead of the 72 DPI MMDocIR ships moved that +0.023. Prompting the reader to
+treat page images as context lifts the metric but turns honest refusals into
+wrong answers, so no prompt change shipped.
+
 ## End-to-end — a RAG↔long-context spectrum, not a fixed ceiling
 
 The retrieval lift and the strong oracle-page generation are both real, but they
