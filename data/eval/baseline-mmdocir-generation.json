@@ -1,5 +1,5 @@
 {
- "golden": "data/golden/_mmdocir_gen150.yaml",
+ "golden": "data/golden/mmdocir-gen150.yaml",
  "n": 150,
  "readers": {
   "hybrid": "qwen2.5vl:7b",

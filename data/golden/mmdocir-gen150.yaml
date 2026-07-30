@@ -1,0 +1,1678 @@
+name: mmdocir
+version: v1-gen150
+queries:
+- query_id: mmdocir_0817_2020.findings-emnlp.139
+  text: How many authors are listed in the paper?
+  paper_id: 2020.findings-emnlp.139
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '11.'
+  note: MMDocIR | domain=Academic paper | type=meta-data
+- query_id: mmdocir_1044_news_combined
+  text: Did the Indianapolis Star rely on multiple sources for the story about the
+    10-year-old girl who traveled for an abortion?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  expected_facts:
+  - No, they relied on a single named source.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_1023_news_combined
+  text: Has Liz Truss advocated for the abolition of the British monarchy in the past?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0275_STEPBACK
+  text: How many green bars appear in Figure 1?
+  paper_id: STEPBACK
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '6'
+  note: MMDocIR | domain=Academic paper | type=['Figure']
+- query_id: mmdocir_0461_2405.09818v1
+  text: What do the green squares denote in Fig 1?
+  paper_id: 2405.09818v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - text tokens
+  note: MMDocIR | domain=Academic paper | type=['Figure', 'Pure-text (Plain-text)']
+- query_id: mmdocir_0380_NUS-FASS-Graduate-Guidebook-20
+  text: For all the people that appear in the guidebook to speak for their department
+    or programmes, how many of them are assistant professors?
+  paper_id: NUS-FASS-Graduate-Guidebook-2021-small
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 29
+  expected_facts:
+  - '1'
+  note: MMDocIR | domain=Guidebook | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0107_finalmediafindingspdf-14122803
+  text: How many districts were sampled during Wave III?
+  paper_id: finalmediafindingspdf-141228031149-conver-cbfc37
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - '44'
+  note: MMDocIR | domain=Research report / Introduction | type=['Table']
+- query_id: mmdocir_0167_indonesiamobilemarketresearch-
+  text: In the slide that includes Mobile Internet Demographics and Trends, how many
+    colors are there in the chart in the top right corner?
+  paper_id: indonesiamobilemarketresearch-ag-15010605-3354dd
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 34
+  expected_facts:
+  - '7'
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart', 'Generalized-text
+    (Layout)', 'Pure-text (Plain-text)']
+- query_id: mmdocir_0127_guojixueshengshenghuozhinanyin
+  text: How many QR codes are shown in the "Academics and Related Resources" part
+    of this guidebook?
+  paper_id: guojixueshengshenghuozhinanyingwen9.1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 23
+  - 25
+  - 26
+  expected_facts:
+  - '6'
+  note: MMDocIR | domain=Guidebook | type=['Figure']
+- query_id: mmdocir_0100_finalpresentationdeck-whatwhyh
+  text: How many sampled questions illustrated in this slide?
+  paper_id: finalpresentationdeck-whatwhyhowofcertifi-be97eb
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  - 11
+  - 12
+  - 13
+  expected_facts:
+  - '4'
+  note: MMDocIR | domain=Brochure | type=['Generalized-text (Layout)']
+- query_id: mmdocir_0997_news_combined
+  text: Did the Colorado River's water levels reach their lowest point ever?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - They are near their lowest point ever.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0099_finalpresentationdeck-whatwhyh
+  text: Regarding the table for 3rd sampled question for the exam, what is the total
+    number of non-response InMails for Recruiter A and B?
+  paper_id: finalpresentationdeck-whatwhyhowofcertifi-be97eb
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  expected_facts:
+  - '380'
+  note: MMDocIR | domain=Brochure | type=['Table']
+- query_id: mmdocir_0052_honor_watch_gs_pro
+  text: What is the time on the gallery screenshot when demostrating how to set galley
+    watch faces?
+  paper_id: honor_watch_gs_pro
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 39
+  - 40
+  - 41
+  expected_facts:
+  - 10:08AM
+  note: MMDocIR | domain=Guidebook | type=['Figure']
+- query_id: mmdocir_0076_PG_2021.03.04_US-Views-on-Chin
+  text: According to the survry,  what's the absolute percent change of dem/lean dem
+    respondents viewing China's growing military power a very serious threat from
+    2020 to 2021?
+  paper_id: PG_2021.03.04_US-Views-on-China_FINAL
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 22
+  expected_facts:
+  - 1%
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart']
+- query_id: mmdocir_0898_JRS-AF_JRS_FINAL_Formatted_Pub
+  text: When was the document approved?
+  paper_id: JRS-AF_JRS_FINAL_Formatted_Public-Version
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 21
+  expected_facts:
+  - On February 14, 2022.
+  note: MMDocIR | domain=Government | type=meta-data
+- query_id: mmdocir_0719_2020.starsem-1.17
+  text: How does the proposed DS-DST model determine the matching between candidate
+    values and the dialogue context?
+  paper_id: 2020.starsem-1.17
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - The proposed DS-DST model employs cosine similarity matching to determine the
+    correlation between candidate values and the dialogue context.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_1071_news_combined
+  text: Did the defendants in Ahmaud Arbery's case help him after the shooting?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 22
+  expected_facts:
+  - No, they did not help him.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0250_e79deb02a0c0e87511080836c5d434
+  text: What is the title of the diagram on page 9?
+  paper_id: e79deb02a0c0e87511080836c5d4347b
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  expected_facts:
+  - Leadership, Workforce and Infrastructure
+  note: MMDocIR | domain=Administration/Industry file | type=['Chart']
+- query_id: mmdocir_0594_D19-1539
+  text: How does the CNN Base model's performance on the SST-2 task compare to the
+    OpenAI GPT?
+  paper_id: D19-1539
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The CNN Base model has an SST-2 score of 93.6, which is higher than OpenAI GPT's
+    score of 91.3.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_1105_news_combined
+  text: How many figures are there in total in the frontpage?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 37
+  expected_facts:
+  - '6.'
+  note: MMDocIR | domain=News | type=meta-data
+- query_id: mmdocir_0141_PIP_Seniors-and-Tech-Use_04031
+  text: What is the gap between male 65+ age group who use internet and  broadband
+    at home in the Pew Research Center’s Internet Project July 18-September 30, 2013
+    tracking survey? Please write the answer into float format.
+  paper_id: PIP_Seniors-and-Tech-Use_040314
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  - 17
+  expected_facts:
+  - '73.0'
+  note: MMDocIR | domain=Research report / Introduction | type=['Table', 'Pure-text
+    (Plain-text)']
+- query_id: mmdocir_0684_D18-1034
+  text: How many references are there in the paper?
+  paper_id: D18-1034
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  - 10
+  expected_facts:
+  - '42.'
+  note: MMDocIR | domain=Academic paper | type=meta-data
+- query_id: mmdocir_0669_N19-1421
+  text: What is the accuracy percentage of the BERT-LARGE model when answering questions
+    about factoid knowledge according to Table 6?
+  paper_id: N19-1421
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - The accuracy percentage is 38.4%.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0728_C18-1182
+  text: What is the purpose of the bidirectional LSTM layers (Char LSTM-B and Char
+    LSTM-F) in the neural network in Figure 2?
+  paper_id: C18-1182
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The purpose of the bidirectional LSTM layers is to process the character sequence
+    in both forward and backward directions to capture context from both sides, which
+    is essential for accurate character-level predictions in NER.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0670_N19-1421
+  text: Which CONCEPTNET relation has the highest frequency in COMMONSENSEQA according
+    to Table 2?
+  paper_id: N19-1421
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - The AtLocation relation.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0954_2023555933
+  text: What is the official effective date of the Internet Information Service Algorithmic
+    Recommendation Management Provisions?
+  paper_id: '2023555933'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - March 1, 2022.
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0061_watch_d
+  text: How many incorrect postures of measuring blood pressure are demostrated if
+    this guidebook?
+  paper_id: watch_d
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 15
+  expected_facts:
+  - '8'
+  note: MMDocIR | domain=Guidebook | type=['Figure']
+- query_id: mmdocir_0838_NYSE_TM_2021
+  text: What is the largest category of shareholders shown in the company's ownership
+    breakdown?
+  paper_id: NYSE_TM_2021
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 53
+  expected_facts:
+  - The largest category of shareholders shown in the ownership breakdown is financial
+    institutions and brokerages.
+  note: MMDocIR | domain=Financial report | type=multimodal-f
+- query_id: mmdocir_0828_ASX_AJY_2020
+  text: On which page does the report detail the information about independent director?
+  paper_id: ASX_AJY_2020
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - page 5.
+  note: MMDocIR | domain=Financial report | type=meta-data
+- query_id: mmdocir_0851_JRS-SCA-ASIA_7FEB2022_PUBLIC
+  text: What are the core values emphasized for democratic sustainability according
+    to Bureau Objective 2.1?
+  paper_id: JRS-SCA-ASIA_7FEB2022_PUBLIC
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - Transparency and accountability, rights-based rule of law, and good governance.
+  note: MMDocIR | domain=Government | type=text-only
+- query_id: mmdocir_0598_D19-1539
+  text: Are all authors from the same affilation?
+  paper_id: D19-1539
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - 'yes'
+  note: MMDocIR | domain=Academic paper | type=meta-data
+- query_id: mmdocir_0737_2020.acl-main.207
+  text: Which training signal resulted in the highest score for the CITE category?
+  paper_id: 2020.acl-main.207
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - SPECTER resulted in the highest score for the CITE category with a score of 91.5.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0779_2020.acl-main.48
+  text: Compute the average Recall improvement of GCAN across both Twitter15 and Twitter16
+    datasets.
+  paper_id: 2020.acl-main.48
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - The average Recall improvement of GCAN is (20.8% + 15.9%) / 2 = 18.35%.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0546_a4f3ced0696009fec3179f493e4f28
+  text: WHAT IS USCA CASE NUMBER?
+  paper_id: a4f3ced0696009fec3179f493e4f28c4
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - 21-13199
+  note: MMDocIR | domain=Administration/Industry file | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0664_2020.acl-main.423
+  text: In Figure 2(a), what is the pattern observed among the supersenses?
+  paper_id: 2020.acl-main.423
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - In Figure 2(a), there is a clear clustering according to the supersense part-of-speech.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0413_7c3f6204b3241f142f0f8eb8e1fefe
+  text: Who is the defendant of this case?
+  paper_id: 7c3f6204b3241f142f0f8eb8e1fefe7a
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - DELAWARE STATE PUBLIC INTEGRITY COMMISSION.
+  note: MMDocIR | domain=Administration/Industry file | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0736_2020.acl-main.207
+  text: What evaluation metrics are used for the citation prediction tasks?
+  paper_id: 2020.acl-main.207
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - MAP (Mean Average Precision) and nDCG (normalized Discounted Cumulative Gain).
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0339_e639029d16094ea71d964e2fb95395
+  text: What page has an eight-pointed snowflake image? Give me an integer.
+  paper_id: e639029d16094ea71d964e2fb953952b
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '1'
+  note: MMDocIR | domain=Administration/Industry file | type=['Figure']
+- query_id: mmdocir_0151_698bba535087fa9a7f9009e172a7f7
+  text: How many pages does websites address appeared? List all the pages in list
+    format, for example ["p1","p2"]
+  paper_id: 698bba535087fa9a7f9009e172a7f763
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 15
+  - 17
+  expected_facts:
+  - '[''p4'', ''p7'', ''p9'']'
+  note: MMDocIR | domain=Research report / Introduction | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0647_2020.acl-main.45
+  text: By how much does the accuracy of BERT+CE on SST-2 exceed that of BERT+DL?
+  paper_id: 2020.acl-main.45
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - The accuracy of BERT+CE on SST-2 exceeds that of BERT+DL by 0.53.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0501_nielsen2015musicbizpresentatio
+  text: What is the combined percentage of Album Sales % and Song Sales % for the
+    Country genre?
+  paper_id: nielsen2015musicbizpresentation-final-150-50ab88
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - '23'
+  note: MMDocIR | domain=Research report / Introduction | type=['Table']
+- query_id: mmdocir_1005_news_combined
+  text: Is PwC allowing its United States employees to work remotely forever?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0642_2020.acl-main.45
+  text: What data augmentation method resulted in the highest F1-score for the BERT
+    model according to Table 8?
+  paper_id: 2020.acl-main.45
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - The "+ positive & negative" data augmentation method resulted in the highest F1-score
+    for the BERT model with a score of 93.14.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0654_P19-1033
+  text: What is the optimal mask probability p value for both LSTUR-ini and LSTUR-con
+    according to Figure 8?
+  paper_id: P19-1033
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - The optimal mask probability p value for both LSTUR-ini and LSTUR-con is around
+    0.5.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_1004_news_combined
+  text: What executive order did President Biden sign related to China?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - n executive order banning new American investment in key technology industries
+    that could be used to enhance Beijing's military capabilities.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_1097_news_combined
+  text: On what date was the newspaper released?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 34
+  expected_facts:
+  - On February 6, 2024.
+  note: MMDocIR | domain=News | type=meta-data
+- query_id: mmdocir_0157_8e7c4cb542ad160f80fb3d795ada35
+  text: What is the residential capacity of Staten Island from 2003 to 2007? Give
+    me an integer.
+  paper_id: 8e7c4cb542ad160f80fb3d795ada35d8
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - '435000000'
+  note: MMDocIR | domain=Research report / Introduction | type=['Pure-text (Plain-text)',
+    'Table']
+- query_id: mmdocir_0953_2023555933
+  text: Is there a fine for network operators in China who fail to authenticate users'
+    identities?
+  paper_id: '2023555933'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0171_caltraincapacitymountainview1-
+  text: How many colors are in the slide 14?
+  paper_id: caltraincapacitymountainview1-15070120575-ed63c3
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - '6'
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart', 'Generalized-text
+    (Layout)']
+- query_id: mmdocir_0980_2022666109
+  text: Did the D.C. Circuit Court find that generation shifting can be considered
+    a system of emission reduction under section 111?
+  paper_id: '2022666109'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0534_PG_20.07.30_U.S.-Views-China_f
+  text: How much did the proportion of the favorable views of China among the American
+    public decresed from 2005 to 2020?
+  paper_id: PG_20.07.30_U.S.-Views-China_final
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - 21%
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart']
+- query_id: mmdocir_0278_STEPBACK
+  text: How much lower is the accuracy of GPT-4 on SituatedQA compared to MMLU Chemistry?
+  paper_id: STEPBACK
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 6
+  expected_facts:
+  - 16.7%
+  note: MMDocIR | domain=Academic paper | type=['Table']
+- query_id: mmdocir_0226_afe620b9beac86c1027b96d31d3964
+  text: What was the value of absolute percentage shortfall in India's GDP growth
+    from 2002 to 2003 compared to the forecast?
+  paper_id: afe620b9beac86c1027b96d31d396407
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - 2.4%
+  note: MMDocIR | domain=Financial report | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0241_f8d3a162ab9507e021d83dd109118b
+  text: How many critical thinking case studies are included in all the assignments?
+  paper_id: f8d3a162ab9507e021d83dd109118b60
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  - 7
+  expected_facts:
+  - '3'
+  note: MMDocIR | domain=Administration/Industry file | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_1081_news_combined
+  text: Which city's residents face nearly everyday killings despite the retreat of
+    Russian forces?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 25
+  expected_facts:
+  - Residents in and around Kherson.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0070_Bergen-Brochure-en-2022-23
+  text: In chaper 2.2, how many museums in Bergen does this brochure introduce?
+  paper_id: Bergen-Brochure-en-2022-23
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  - 12
+  - 13
+  - 14
+  expected_facts:
+  - '31'
+  note: MMDocIR | domain=Brochure | type=['Generalized-text (Layout)']
+- query_id: mmdocir_0989_2022666107
+  text: How many countries are listed on the cover of the report?
+  paper_id: '2022666107'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '10.'
+  note: MMDocIR | domain=Laws | type=meta-data
+- query_id: mmdocir_0938_2019713412
+  text: What is the role of the judge in CCR sessions?
+  paper_id: '2019713412'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 45
+  expected_facts:
+  - The judge's role in CCR sessions is facilitative but not evaluative.
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0705_P18-1041
+  text: How much faster is the SWEM model compared to the LSTM model in terms of training
+    speed?
+  paper_id: P18-1041
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - The SWEM model is approximately 9.5 times faster than the LSTM model in terms
+    of training speed.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0574_NUS-Business-School-BBA-Brochu
+  text: From 2022 graduate employment survey,  graduates with which degree have the
+    highest average monthly salary?
+  paper_id: NUS-Business-School-BBA-Brochure-2024
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - BBA - Bachelor of Business Administration
+  note: MMDocIR | domain=Brochure | type=['Chart']
+- query_id: mmdocir_1069_news_combined
+  text: What is the estimated number of deaths in Borodyanka due to airstrikes?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 21
+  expected_facts:
+  - Over 200.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0707_P18-1041
+  text: How much does the test accuracy decrease when using a shuffled training set
+    as opposed to the original training set on the Yelp polarity dataset?
+  paper_id: P18-1041
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - 1.62%
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0462_2405.09818v1
+  text: How many pictures are used in the chat example figures, excluding the Appendix?
+  paper_id: 2405.09818v1
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 4
+  - 5
+  - 10
+  - 11
+  expected_facts:
+  - '18'
+  note: MMDocIR | domain=Academic paper | type=['Figure']
+- query_id: mmdocir_1015_news_combined
+  text: Is the article about Hurricane Ian's impact in Florida written by multiple
+    authors?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=News | type=meta-data
+- query_id: mmdocir_0543_f86d073b0d735ac873a65d906ba827
+  text: What is the sum ratio of shares held of the top-3 shareholders as on 31st,
+    March, 2007?
+  paper_id: f86d073b0d735ac873a65d906ba82758
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - 51.02%
+  note: MMDocIR | domain=Financial report | type=['Table']
+- query_id: mmdocir_0890_FBS_S_GAC_Public
+  text: Will PEPFAR increase its funding and support for community-led monitoring?
+  paper_id: FBS_S_GAC_Public
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=Government | type=text-only
+- query_id: mmdocir_0475_BRO-GL-MMONEY
+  text: What is the button to click for up-to-the-minute portfolio balances?
+  paper_id: BRO-GL-MMONEY
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - Live Balances
+  note: MMDocIR | domain=Brochure | type=['Figure']
+- query_id: mmdocir_0631_D18-1360
+  text: What is the performance score for Entity Recognition when multitasked with
+    Coreference Resolution?
+  paper_id: D18-1360
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - '67.5'
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0299_8dfc21ec151fb9d3578fc32d5c4e5d
+  text: What's the geographic market name for EPS Code AR01?
+  paper_id: 8dfc21ec151fb9d3578fc32d5c4e5df9
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - Little Rock
+  note: MMDocIR | domain=Guidebook | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0114_asdaaburson-marstellerarabyout
+  text: In 2014, respondents who believe traditional values are outdated increased
+    by how many percentage points compared to 2011?
+  paper_id: asdaaburson-marstellerarabyouthsurvey2014-96e4d0
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - 29%
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart']
+- query_id: mmdocir_0259_ecommerceopportunityindia-1411
+  text: How many people in India were using a debit card when the e-commerce sales
+    reached 11 billion?
+  paper_id: ecommerceopportunityindia-141124010546-co-d8cf2c
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  - 15
+  expected_facts:
+  - 399 million
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart']
+- query_id: mmdocir_0207_welcome-to-nus
+  text: How many NUSSU constituent clubs and NUSSU committees are there respectively?
+    Please write the answer in list format.
+  paper_id: welcome-to-nus
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - '[''15'', ''9'']'
+  note: MMDocIR | domain=Brochure | type=['Generalized-text (Layout)', 'Pure-text
+    (Plain-text)']
+- query_id: mmdocir_0601_W18-5713
+  text: How many total evaluations were collected for the comparison between RetrieveNRefine++
+    (retrieved) vs. Seq2Seq?
+  paper_id: W18-5713
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - total of 626 evaluations were collected for RetrieveNRefine++ (retrieved) vs.
+    Seq2Seq (290 A Wins + 249 B Wins + 87 Ties = 626).
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0731_L18-1269
+  text: On which page does the paper detail the baseline models?
+  paper_id: L18-1269
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - 4 or 1702.
+  note: MMDocIR | domain=Academic paper | type=meta-data
+- query_id: mmdocir_0058_nova_y70
+  text: Under the pro mode to shoot, what is the function of the icon on right hand
+    side of the icon that select a focus mode?
+  paper_id: nova_y70
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 29
+  expected_facts:
+  - set white balance
+  note: MMDocIR | domain=Guidebook | type=['Figure', 'Generalized-text (Layout)']
+- query_id: mmdocir_0639_2020.acl-main.45
+  text: How does the paper propose to calculate the coefficient α for the Weighted
+    Cross Entropy Loss?
+  paper_id: 2020.acl-main.45
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - The coefficient α is calculated using the equation lg((n-nt)/(nt+K)), where nt
+    is the number of samples with class t, n is the total number of samples in the
+    training set, and K is a hyperparameter to tune.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_1031_news_combined
+  text: How many soldiers are shown in the photo of the Ukrainian troops?
+  paper_id: news_combined
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 12
+  expected_facts:
+  - '5'
+  note: MMDocIR | domain=News | type=multimodal-f
+- query_id: mmdocir_0033_reportq32015-151009093138-lva1
+  text: Which news appear in both Vietnam mobile news and APPOTA news?
+  paper_id: reportq32015-151009093138-lva1-app6891_95
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 13
+  - 31
+  expected_facts:
+  - Bluebird Award
+  note: MMDocIR | domain=Research report / Introduction | type=['Generalized-text
+    (Layout)', 'Figure']
+- query_id: mmdocir_0153_698bba535087fa9a7f9009e172a7f7
+  text: How many square miles does the Hamilton country covers according to the document?
+    Give me an appropriate integer.
+  paper_id: 698bba535087fa9a7f9009e172a7f763
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  expected_facts:
+  - '538'
+  note: MMDocIR | domain=Research report / Introduction | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0638_P19-1459
+  text: What function is used to determine a probability distribution over the two
+    warrants in the proposed architecture?
+  paper_id: P19-1459
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - softmax function is used to determine a probability distribution over the two
+    warrants.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0878_JRS-EAP-Asia_06JAN2023_Public
+  text: What are the potential consequences of inaction in addressing climate change
+    mentioned in the document?
+  paper_id: JRS-EAP-Asia_06JAN2023_Public
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 19
+  expected_facts:
+  - ccording to the text, inaction could lead to catastrophic damage to the economy,
+    security, natural resources, and public health. It could also exacerbate social
+    and economic inequalities, threaten national security, and jeopardize development
+    gains in various sectors.
+  note: MMDocIR | domain=Government | type=text-only
+- query_id: mmdocir_1008_news_combined
+  text: What percentage of Twitter's shares has Elon Musk amassed?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - 9.2 percent.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_1042_news_combined
+  text: What was the proposed evacuation in northern Gaza Strip described as by a
+    U.N. spokesman?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 15
+  expected_facts:
+  - Unworkable or unlawful.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0742_P19-1078
+  text: Explain the function of the slot gate in the proposed TRADE model.
+  paper_id: P19-1078
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - The slot gate in the TRADE model predicts whether a particular (domain, slot)
+    pair is triggered by the dialogue. It works alongside the utterance encoder and
+    the state generator. The state generator decodes J times independently for all
+    possible (domain, slot) pairs, and during the first decoding step, the state generator
+    will use the j-th (domain, slot) embeddings to generate its corresponding slot
+    values and the slot gate will determine if the pair is relevant based on the dialogue
+    context.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0687_N19-1240
+  text: Which model outperformed all other models on the unmasked development set
+    according to Table 2?
+  paper_id: N19-1240
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - Entity-GCN* (ensemble 5 models) achieved the highest accuracy on the unmasked
+    development set with a score of 68.5.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0212_PP_2019.01.17_Trump-economy_FI
+  text: What is the percentage difference between the proportion of people who are
+    very confident in Trump's ability to make wise decisions about immigration policy
+    and those who are not confident at all?
+  paper_id: PP_2019.01.17_Trump-economy_FINAL2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - 16%
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart']
+- query_id: mmdocir_0483_PI_2017.10.04_Automation_FINAL
+  text: How many US workers say email or social media have had a postive impact on
+    their own careers or jobs?
+  paper_id: PI_2017.10.04_Automation_FINAL
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  - 12
+  expected_facts:
+  - '2481'
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart', 'Pure-text
+    (Plain-text)']
+- query_id: mmdocir_1120_news_combined
+  text: On what day was the newspaper released?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 46
+  expected_facts:
+  - On Monday.
+  note: MMDocIR | domain=News | type=meta-data
+- query_id: mmdocir_0310_measuringsuccessonfacebooktwit
+  text: In the two years 2013-2014, in which year is there a lower percentage of users
+    from rural locations on the platform whose measurement tools include Twitter Analytics,
+    Followerwonk, Buffer, and TweetReach?
+  paper_id: measuringsuccessonfacebooktwitterlinkedin-538b32
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 15
+  - 19
+  expected_facts:
+  - '2013'
+  note: MMDocIR | domain=Tutorial/Workshop | type=['Table']
+- query_id: mmdocir_0837_NYSE_TM_2021
+  text: What is the difference in the rate of the engine being off during driving
+    between HEVs and PHEVs?
+  paper_id: NYSE_TM_2021
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 28
+  expected_facts:
+  - The rate of the engine being off during driving is 24% higher in PHEVs (83%) compared
+    to HEVs (59%).
+  note: MMDocIR | domain=Financial report | type=multimodal-f
+- query_id: mmdocir_0727_C18-1182
+  text: According to Figure 1, how is each word in a sentence processed before being
+    input to the LSTM layers?
+  paper_id: C18-1182
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - Each word is processed through a word embedding layer which transforms the word
+    into a numerical vector representation before being input to the LSTM layers.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0262_ecommerceopportunityindia-1411
+  text: How many 'Pioneers' and people on the cover of the slides are there in total
+    in the slide?
+  paper_id: ecommerceopportunityindia-141124010546-co-d8cf2c
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  - 2
+  - 10
+  - 26
+  expected_facts:
+  - '12'
+  note: MMDocIR | domain=Research report / Introduction | type=['Figure']
+- query_id: mmdocir_0430_formwork-150318073913-conversi
+  text: What are the special forms of column formworks that are illustrated with diagrams
+    in the slides?
+  paper_id: formwork-150318073913-conversion-gate01_95
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 17
+  - 18
+  expected_facts:
+  - '[''Circular and octagonal columns'', ''Column bracing formwork'']'
+  note: MMDocIR | domain=Tutorial/Workshop | type=['Figure', 'Pure-text (Plain-text)']
+- query_id: mmdocir_0934_2021687418
+  text: What is the nature of the right to freedom of political communication as identified
+    by the High Court of Australia?
+  paper_id: '2021687418'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The right to freedom of political communication is not personal in nature; instead,
+    it operates as a structural limitation on the exercise of power by Parliament.
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0649_P19-1033
+  text: Which method is used to learn short-term user representations?
+  paper_id: P19-1033
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - GRU network.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0815_2020.findings-emnlp.139
+  text: Which programming language had the most datapoints for PL probing according
+    to Table 3?
+  paper_id: 2020.findings-emnlp.139
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - Python had the most datapoints for PL probing with 1,264 datapoints.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0085_fd76bbefe469561966e5387aa709c4
+  text: Among figure 1-4, how many figures show more than one breccia gash?
+  paper_id: fd76bbefe469561966e5387aa709c482
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - '2'
+  note: MMDocIR | domain=Academic paper | type=['Figure', 'Generalized-text (Layout)']
+- query_id: mmdocir_0730_L18-1269
+  text: What metric is used to measure the performance of the caption-image compatibility
+    score?
+  paper_id: L18-1269
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - Recall@K and median rank.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0786_2020.emnlp-main.213
+  text: Which metric showed the highest correlation with human judgments for the en-cs
+    language pair according to Table 1?
+  paper_id: 2020.emnlp-main.213
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The COMET-RANK metric showed the highest correlation with human judgments for
+    the en-cs language pair with a score of 0.603.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_1099_news_combined
+  text: On which page does the newspaper introduce the news of Oscar nominations?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 35
+  expected_facts:
+  - Page C1.
+  note: MMDocIR | domain=News | type=meta-data
+- query_id: mmdocir_0694_D18-1287
+  text: What is the total number of paragraphs in the LANI dataset?
+  paper_id: D18-1287
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The total number of paragraphs in the LANI dataset is 6,000.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0888_FBS_S_GWI_Public
+  text: What is the title of the document?
+  paper_id: FBS_S_GWI_Public
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - SECRETARY'S OFFICE OF GLOBAL WOMEN'S ISSUES
+  note: MMDocIR | domain=Government | type=meta-data
+- query_id: mmdocir_0411_7c3f6204b3241f142f0f8eb8e1fefe
+  text: Write the filling id and case number in this document?
+  paper_id: 7c3f6204b3241f142f0f8eb8e1fefe7a
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '[''48897809'', ''5152012'']'
+  note: MMDocIR | domain=Administration/Industry file | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_1055_news_combined
+  text: What is the relationship between the Petrosyants brothers and Eric Adams?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 19
+  expected_facts:
+  - The brothers boasted of their friendship with Adams.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0770_2020.acl-main.653
+  text: Which model has the highest F1 score for Spanish (es)?
+  paper_id: 2020.acl-main.653
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - XLM with a score of 68.0.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0110_finalmediafindingspdf-14122803
+  text: Among 4021 respondents,  what is the percentage of them having a smart phone?
+  paper_id: finalmediafindingspdf-141228031149-conver-cbfc37
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 30
+  expected_facts:
+  - 27.2%
+  note: MMDocIR | domain=Research report / Introduction | type=['Figure']
+- query_id: mmdocir_0991_news_combined
+  text: How many figures are there in the frontpage?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '6.'
+  note: MMDocIR | domain=News | type=meta-data
+- query_id: mmdocir_0850_JRS-SCA-ASIA_7FEB2022_PUBLIC
+  text: Is the C5+1 platform inclusive of objectives for democracy, human rights,
+    and governance?
+  paper_id: JRS-SCA-ASIA_7FEB2022_PUBLIC
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - No.
+  note: MMDocIR | domain=Government | type=text-only
+- query_id: mmdocir_0210_welcome-to-nus
+  text: For the learning resources, which facilities are opened on Saturday in NUS
+    Kent Ridge Campus? Give me a list.
+  paper_id: welcome-to-nus
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 19
+  - 20
+  expected_facts:
+  - '[''Computing Commons'', ''Central Library'', ''Medical Library'', ''Chinese Library'',
+    ''Science Library'', ''Hon Sui Sen Memorial Library'']'
+  note: MMDocIR | domain=Brochure | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0795_W19-5302
+  text: Is the Meteor++_2.0 (syntax+copy) score for the enkk-en language pair higher
+    than the score for enfi-en?
+  paper_id: W19-5302
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - No.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0644_2020.acl-main.45
+  text: Which model achieved the highest F1 score in the English WSJ dataset?
+  paper_id: 2020.acl-main.45
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - BERT-Tagger+DSC achieved the highest F1 score in the English WSJ dataset with
+    a score of 99.38.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_1059_news_combined
+  text: Are Republican candidates for Rob Portman's seat in Ohio being accused of
+    being disloyal to Donald Trump?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 20
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_1038_news_combined
+  text: Where was Sam Bankman-Fried’s fraud trial held?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 14
+  expected_facts:
+  - Federal court in Manhattan.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0074_PG_2021.03.04_US-Views-on-Chin
+  text: Among all valid respondents,  how many rep/lean rep independents (the exact
+    number, not the ratio) favor building a strong relationship with China on trade?
+    Please give your answer to the nearest hundred, such as 100, 200 or 300....
+  paper_id: PG_2021.03.04_US-Views-on-China_FINAL
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 27
+  - 39
+  expected_facts:
+  - '300'
+  note: MMDocIR | domain=Research report / Introduction | type=['Table', 'Chart']
+- query_id: mmdocir_0677_D18-1003
+  text: In Figure 2b, which two groups of news sources does DeClarE differentiate
+    between?
+  paper_id: D18-1003
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - DeClarE differentiates between fake news sources (like nationalreport, empirenews,
+    huzlers, etc.) and authentic mainstream news sources (like nytimes, cnn, wsj,
+    foxnews, washingtonpost, etc.).
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0376_tacl_a_00660
+  text: For all the papers that are listed in Table 1 and Table 2, how many of them
+    are proposed in 2021?
+  paper_id: tacl_a_00660
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  - 6
+  expected_facts:
+  - '1'
+  note: MMDocIR | domain=Academic paper | type=['Table']
+- query_id: mmdocir_0583_P19-1598
+  text: How many documents are there in the training set of the Linked WikiText-2
+    Corpus?
+  paper_id: P19-1598
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - There are 600 documents in the training set.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0216_PP_2019.01.17_Trump-economy_FI
+  text: In 2019, what is the percentage difference between those who are not too confident
+    that Robert Mueller is conducting a fair investigation into Russian involvement
+    in the 2016 election and those who were very confident in January 2018?
+  paper_id: PP_2019.01.17_Trump-economy_FINAL2
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  - 17
+  expected_facts:
+  - 10%
+  note: MMDocIR | domain=Research report / Introduction | type=['Chart']
+- query_id: mmdocir_0381_DSA-278777
+  text: How many parts has the prefix N in the packages?
+  paper_id: DSA-278777
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - '2'
+  note: MMDocIR | domain=Guidebook | type=['Pure-text (Plain-text)', 'Table']
+- query_id: mmdocir_0698_P19-1355
+  text: What is the CO2 equivalent emission for training a Transformer (big) NLP model
+    on a GPU?
+  paper_id: P19-1355
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - The CO2 equivalent emission for training a Transformer (big) NLP model on a GPU
+    is 192 lbs.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0103_avalaunchpresentationsthatkick
+  text: How many children are being read to in the photograph of Page 3?
+  paper_id: avalaunchpresentationsthatkickasteriskv3c-695587
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - '2'
+  note: MMDocIR | domain=Tutorial/Workshop | type=['Figure']
+- query_id: mmdocir_0358_competitiveoutcomes-0910060651
+  text: What is the utility derived from each hot dog that the boy is eating in the
+    picture in slide 4?
+  paper_id: competitiveoutcomes-091006065143-phpapp01_95
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '+10'
+  note: MMDocIR | domain=Tutorial/Workshop | type=['Figure', 'Table']
+- query_id: mmdocir_0315_measuringsuccessonfacebooktwit
+  text: What is the total percentage of income > 75k for the LinkedIn platform?
+  paper_id: measuringsuccessonfacebooktwitterlinkedin-538b32
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 20
+  expected_facts:
+  - 44%
+  note: MMDocIR | domain=Tutorial/Workshop | type=['Figure']
+- query_id: mmdocir_0046_2312.10997v5
+  text: In the figure that has a tree shape, what is the name of the branch that has
+    the least leafs?
+  paper_id: 2312.10997v5
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 2
+  expected_facts:
+  - Pre-training
+  note: MMDocIR | domain=Academic paper | type=['Chart', 'Generalized-text (Layout)']
+- query_id: mmdocir_0137_PIP_Seniors-and-Tech-Use_04031
+  text: What is the percentage gap between male 65+ age group who use internet and  broadband
+    at home in the Pew Research Center’s Internet Project July 18-September 30, 2013
+    tracking survey? Please write the answer into float format.
+  paper_id: PIP_Seniors-and-Tech-Use_040314
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 8
+  expected_facts:
+  - 12%
+  note: MMDocIR | domain=Research report / Introduction | type=['Pure-text (Plain-text)',
+    'Table', 'Chart']
+- query_id: mmdocir_0824_ASX_AJY_2020
+  text: What is the total number of board meetings held during the financial year?
+  paper_id: ASX_AJY_2020
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The total number of board meetings held during the financial year was 4.
+  note: MMDocIR | domain=Financial report | type=multimodal-t
+- query_id: mmdocir_0285_camry_ebrochure
+  text: What models of cars are introduced on pages 10 and 11?
+  paper_id: camry_ebrochure
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  - 11
+  expected_facts:
+  - '[''SE'', ''SE Nightshade'', ''XSE'', ''XSE6'', ''TRD'', ''LE Hybrid'']'
+  note: MMDocIR | domain=Brochure | type=['Generalized-text (Layout)']
+- query_id: mmdocir_0937_2023555914
+  text: When was the report released?
+  paper_id: '2023555914'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - In March 2022.
+  note: MMDocIR | domain=Laws | type=meta-data
+- query_id: mmdocir_0047_2312.10997v5
+  text: In figure 3, how many distinct icons are used?
+  paper_id: 2312.10997v5
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - '9'
+  note: MMDocIR | domain=Academic paper | type=['Figure']
+- query_id: mmdocir_0802_N18-1012
+  text: On which page do the researchers discuss about future work?
+  paper_id: N18-1012
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 9
+  expected_facts:
+  - 9 or 137.
+  note: MMDocIR | domain=Academic paper | type=meta-data
+- query_id: mmdocir_0752_N18-1008
+  text: Do all variations of the attentional model have encoders that are attended
+    to by decoders?
+  paper_id: N18-1008
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - No.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0872_FBS_CA_03NOV2023_PUBLIC
+  text: How does the Bureau plan to reduce the risk of visa fraud through their future
+    objectives?
+  paper_id: FBS_CA_03NOV2023_PUBLIC
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 13
+  expected_facts:
+  - The Bureau intends to reduce the risk of visa fraud by launching a foil-less visa,
+    the Digital Visa Authorization (DVA), which will minimize the amount of time passports
+    are retained by the Bureau and prevent malafide actors from altering physical
+    visa foils.
+  note: MMDocIR | domain=Government | type=text-only
+- query_id: mmdocir_0726_C18-1182
+  text: According to Figure 3, what is the sequence followed to generate the final
+    labels for Named Entity Recognition?
+  paper_id: C18-1182
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - The sequence is Characters -> Char Embedding -> Char LSTM-B/F -> Word Features
+    -> Word Representation -> Word LSTM-F/B -> Word CRF -> Label.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0059_nova_y70
+  text: In the demostration of how to use a Knuckle to Take a Scrolling Screenshot,
+    what buildings appear in the first picture?
+  paper_id: nova_y70
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 15
+  expected_facts:
+  - Eiffel Tower
+  note: MMDocIR | domain=Guidebook | type=['Figure']
+- query_id: mmdocir_0577_NUS-Business-School-BBA-Brochu
+  text: How many weeks do students need to reach work experience milestone and get
+    8 units?
+  paper_id: NUS-Business-School-BBA-Brochure-2024
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  - 16
+  expected_facts:
+  - '16'
+  note: MMDocIR | domain=Brochure | type=['Figure', 'Generalized-text (Layout)']
+- query_id: mmdocir_0689_N19-1240
+  text: What is the unmasked score of the full (single) model as per Table 3?
+  paper_id: N19-1240
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - The unmasked score of the full (single) model is 65.1.
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0921_2023555930
+  text: Does the Constitution of Iran guarantee equality before the law for all citizens?
+  paper_id: '2023555930'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - Yes, but it is subject to "conformity with Islamic criteria."
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0886_FBS_DS_10JAN2022_PUBLICv2
+  text: On which page does the report detail the Bureau Objective 4.2?
+  paper_id: FBS_DS_10JAN2022_PUBLICv2
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 16
+  expected_facts:
+  - 14 or 16.
+  note: MMDocIR | domain=Government | type=meta-data
+- query_id: mmdocir_0946_2023555932
+  text: What is the aim of FIRS according to the Policy Statement on Draft Regulations
+    for the Foreign Influence Registration Scheme?
+  paper_id: '2023555932'
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 4
+  expected_facts:
+  - FIRS is designed to increase transparency in political influence in the UK, strengthen
+    the integrity of UK politics and institutions, and protect the UK from state threats.
+  note: MMDocIR | domain=Laws | type=text-only
+- query_id: mmdocir_0338_e639029d16094ea71d964e2fb95395
+  text: How many websites are present on the cover page?
+  paper_id: e639029d16094ea71d964e2fb953952b
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - '2'
+  note: MMDocIR | domain=Administration/Industry file | type=[]
+- query_id: mmdocir_1027_news_combined
+  text: How is ecuavoley related to Queens, New York?
+  paper_id: news_combined
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  expected_facts:
+  - It is a popular game played by the Ecuadorean community there.
+  note: MMDocIR | domain=News | type=text-only
+- query_id: mmdocir_0869_USCOURTS-nmd-1_24-cr-00032-8
+  text: Was the United States' Motion to use Photographs in Opening Statement granted?
+  paper_id: USCOURTS-nmd-1_24-cr-00032-8
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 1
+  expected_facts:
+  - Yes.
+  note: MMDocIR | domain=Government | type=text-only
+- query_id: mmdocir_0161_indonesiamobilemarketresearch-
+  text: 'On the slide that starts with the text Country Overview in the top-left corner
+    and is followed with a bulleted list with the first entry in that list being Population:
+    (July 2013 est.) 251,160,124, how much greater is the GDP per capita for 2012
+    than 2011?'
+  paper_id: indonesiamobilemarketresearch-ag-15010605-3354dd
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - '198'
+  note: MMDocIR | domain=Research report / Introduction | type=['Pure-text (Plain-text)',
+    'Generalized-text (Layout)', 'Chart']
+- query_id: mmdocir_0816_2020.findings-emnlp.139
+  text: What is the total number of datapoints for Python when combining both bimodal
+    and unimodal codes?
+  paper_id: 2020.findings-emnlp.139
+  category: table
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - The total number of datapoints for Python is 1,614,304, which is the sum of bimodal
+    datapoints (458,219) and unimodal codes (1,156,085).
+  note: MMDocIR | domain=Academic paper | type=multimodal-t
+- query_id: mmdocir_0149_698bba535087fa9a7f9009e172a7f7
+  text: How many square miles did the Hamilton country covers on year 1882? Return
+    me a rounded integer.
+  paper_id: 698bba535087fa9a7f9009e172a7f763
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 11
+  expected_facts:
+  - '538'
+  note: MMDocIR | domain=Research report / Introduction | type=['Pure-text (Plain-text)']
+- query_id: mmdocir_0686_N19-1240
+  text: What is the significance of the R-GCN component within the Entity-GCN model
+    based on the ablation study?
+  paper_id: N19-1240
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 6
+  expected_facts:
+  - The R-GCN component is significant as it enhances the model's ability to perform
+    above Coref-GRU without accessing context by updating mention representations
+    based on the relation to other ones. This is demonstrated by an 8.0 point loss
+    in accuracy when the R-GCN component is removed.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0624_D18-1334
+  text: Has the gender-informed NMT system shown consistent improvements over the
+    baseline system?
+  paper_id: D18-1334
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 5
+  expected_facts:
+  - No.
+  note: MMDocIR | domain=Academic paper | type=text-only
+- query_id: mmdocir_0655_P19-1033
+  text: What are the two sub-modules within the news encoder according to Figure 2?
+  paper_id: P19-1033
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 3
+  expected_facts:
+  - The two sub-modules within the news encoder are a title encoder and a topic encoder.
+  note: MMDocIR | domain=Academic paper | type=multimodal-f
+- query_id: mmdocir_0478_transform-software-delivery-wi
+  text: What is the title of the page that contains a screenshot?
+  paper_id: transform-software-delivery-with-valueedg-4cf37f
+  category: figure
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 10
+  expected_facts:
+  - ValueEdge insights
+  note: MMDocIR | domain=Brochure | type=['Figure']
+- query_id: mmdocir_0864_FBS_OES_28APR2023_PUBLIC
+  text: What is the goal that the Bureau Objective 1.1 supports regarding global conservation?
+  paper_id: FBS_OES_28APR2023_PUBLIC
+  category: factual
+  relevant_chunk_ids: []
+  relevant_pages:
+  - 7
+  expected_facts:
+  - The goal is to conserve at least 30 percent of land and waters and 30 percent
+    of the global ocean by 2030.
+  note: MMDocIR | domain=Government | type=text-only
