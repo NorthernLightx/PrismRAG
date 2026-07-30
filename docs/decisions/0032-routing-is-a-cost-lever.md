@@ -89,3 +89,30 @@ Each of these could have explained the result away. None did:
 - Untested and not claimed: prose corpora with no layout to exploit, corpora
   past ~5k pages, and per-query cost when every query needs a vision-capable
   reader.
+
+## Amendment (2026-07-30): the reader's refusals are mostly correct
+
+Chasing the reading bottleneck this ADR names, on the same 150-query subset with
+`gemma-4-26b`:
+
+- Of 120 queries whose correct evidence reached the reader, **46 % were refused**
+  and only 11 % were answered wrongly. Refusal outnumbers misreading 4:1.
+- A page image is worth no more than a text chunk once retrieved: 0.366 against
+  0.388.
+- Re-rendering pages from 72 DPI (what MMDocIR ships) to 150 DPI, 4.3x the
+  pixels, moved correctness +0.023 and left the refusal rate at 49 %. Not the
+  binding constraint.
+- Telling the model that attached images count as context lifts the metric
+  (+0.065, p=0.003) but **converts honest refusals into wrong answers**: 10 of
+  20 newly-answered queries are wrong under the looser prompt, 23 of 29 under a
+  variant that keeps the strict refusal wording. The failures are counting
+  questions ("how many green bars appear in Figure 1"), which this reader cannot
+  do from a page image.
+
+No prompt variant shipped. `judge_answer_correctness` grades recall of expected
+facts and ignores precision, so it scores a confident wrong answer above a
+correct refusal — the metric moved while the product got worse. Receipts in
+`data/eval/baseline-mmdocir-perception.json`.
+
+Anything that trades refusals for attempts needs a precision-aware metric first.
+The repo already has faithfulness judges; they were not part of this gate.
