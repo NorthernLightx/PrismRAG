@@ -16,7 +16,7 @@ kept on purpose.
 - [0010](./0010-cost-quality-cascade.md) — Cost-quality cascade routing + eval methodology hardening
 - [0011](./0011-figure-caption-aggregation.md) — Figure caption aggregation
 - [0012](./0012-reranker-swap-investigated.md) — Reranker swap investigated; incumbent kept (premise falsified)
-- [0013](./0013-routing-is-the-accuracy-lever.md) — Routing is the accuracy lever; LLM-classifier router shipped
+- [0013](./0013-routing-is-the-accuracy-lever.md) — Routing is the accuracy lever; LLM-classifier router shipped (superseded by 0032)
 - [0014](./0014-api-reranker-parity.md) — Wire the reranker into the API retrieval path
 - [0015](./0015-routing-fair-eval-set.md) — A routing-fair evaluation set (`robust-v1`)
 - [0016](./0016-context-neighbourhood-expansion.md) — Context-neighbourhood expansion: built, inconclusive, not shipped
@@ -35,3 +35,4 @@ kept on purpose.
 - [0029](./0029-runtime-document-upload.md) — Runtime document upload (flag-gated, text-leg, incremental)
 - [0030](./0030-frontend-backend-split.md) — Split the frontend off the backend image
 - [0031](./0031-provider-menu-byok-or-ollama.md) — Provider menu: generation on the visitor's own provider (OpenRouter BYOK or local Ollama)
+- [0032](./0032-routing-is-a-cost-lever.md) — Routing is a cost lever, not an accuracy lever (supersedes 0013)

@@ -1,7 +1,10 @@
 # ADR 0013 — Routing is the accuracy lever; LLM-classifier router shipped
 
-**Status:** Accepted and applied (2026-05-17). Measured on the correct
-MMLongBench corpus, sanity-gate verified.
+**Status:** Superseded by [ADR 0032](./0032-routing-is-a-cost-lever.md)
+(2026-07-30). The router still beats text-only, but at n=1,029 on MMDocIR
+always-fusing beats the router by +0.163 recall@10 at the same latency, so
+routing is a cost lever rather than an accuracy one. Originally accepted and
+applied 2026-05-17, measured on the MMLongBench corpus at n=107 (CI ±0.06).
 **Date:** 2026-05-17.
 
 ## Context
