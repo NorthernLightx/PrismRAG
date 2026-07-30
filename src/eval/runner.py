@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from src.eval.judges import LLMJudge
@@ -35,6 +35,7 @@ async def evaluate(
     top_k: int = 10,
     config: dict[str, Any] | None = None,
     paper_id_filter: bool = False,
+    force_route: Literal["text", "visual", "hybrid"] | None = None,
 ) -> EvalRun:
     """Run every query in `golden_set` through `retriever` (and `generator` if given).
 
@@ -58,7 +59,9 @@ async def evaluate(
         per_query: list[PerQueryResult] = []
         for query in golden_set.queries:
             per_query.append(
-                await _run_one(query, retriever, generator, judge, top_k, paper_id_filter)
+                await _run_one(
+                    query, retriever, generator, judge, top_k, paper_id_filter, force_route
+                )
             )
         finished_at = datetime.now(UTC)
         ctx["mean_ndcg5"] = (
@@ -82,6 +85,7 @@ async def _run_one(
     judge: LLMJudge | None,
     top_k: int,
     paper_id_filter: bool = False,
+    force_route: Literal["text", "visual", "hybrid"] | None = None,
 ) -> PerQueryResult:
     """Retrieve, optionally generate, optionally judge, compute per-query metrics.
 
@@ -96,7 +100,7 @@ async def _run_one(
     filters: dict[str, Any] = {}
     if paper_id_filter and query.paper_id:
         filters["paper_id"] = query.paper_id
-    rag_query = Query(text=query.text, top_k=top_k, filters=filters)
+    rag_query = Query(text=query.text, top_k=top_k, filters=filters, force_route=force_route)
     retrieved = await retriever.retrieve(rag_query)
     retrieved_chunk_ids = [r.chunk_id for r in retrieved]
 

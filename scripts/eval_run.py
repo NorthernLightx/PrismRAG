@@ -127,6 +127,7 @@ async def _main(
     visual_model: str,
     visual_device: str,
     visual_collection: str | None,
+    force_route: str | None,
     pages_dir: Path,
     pages_dpi: int,
     agentic: bool,
@@ -453,6 +454,7 @@ async def _main(
         judge=judge_obj,
         top_k=top_k,
         paper_id_filter=paper_id_filter,
+        force_route=force_route,  # type: ignore[arg-type]  # argparse choices match the Literal
         config={
             "retriever": "pipeline",
             "rerank": rerank,
@@ -486,6 +488,7 @@ async def _main(
             "query_expansion_n": query_expansion_n if query_expansion else None,
             "router": router,
             "router_classifier": router_classifier if router else None,
+            "force_route": force_route,
             "router_classifier_model": (
                 router_classifier_model if router and router_classifier == "llm" else None
             ),
@@ -817,6 +820,15 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--force-route",
+        choices=["text", "visual", "hybrid"],
+        default=None,
+        help=(
+            "Bypass the classifier and send every query down this route. "
+            "'hybrid' measures always-fuse against the classifier's decisions."
+        ),
+    )
+    parser.add_argument(
         "--visual-collection",
         default=None,
         help=(
@@ -1024,6 +1036,7 @@ if __name__ == "__main__":
             router_classifier_model=args.router_classifier_model,
             visual_model=args.visual_model,
             visual_collection=args.visual_collection,
+            force_route=args.force_route,
             visual_device=args.visual_device,
             pages_dir=args.pages_dir,
             pages_dpi=args.pages_dpi,
