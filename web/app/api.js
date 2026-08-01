@@ -425,7 +425,13 @@
   // public URLs — so we send the bytes inline instead. Returns null on failure.
   async function imageToDataUrl(url) {
     try {
-      const res = await fetch(url);
+      // cache: "no-store" — the retrieval panel's <img> tags fetch these same
+      // URLs without an Origin header, and the server only emits
+      // Access-Control-Allow-Origin (and Vary: Origin) when Origin is present.
+      // Chrome then serves that headerless cached response to this cors-mode
+      // fetch and blocks it, so the visually-retrieved page would silently
+      // never reach the model on the split-origin deploy.
+      const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) return null;
       const blob = await res.blob();
       return await new Promise((resolve) => {
