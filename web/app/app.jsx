@@ -423,6 +423,13 @@ function App() {
       clearTimeout(coldTimer);
       setBackendWarm("ready");
       setPagesAvailable(!!h.pages_available); setRoutingAvailable(h.routing_available === true); setUploadAvailable(!!h.upload_available);
+      // /health resolving proves the backend is warm. The parallel corpus
+      // fetches above can burn all their retries inside the cold-start window
+      // (they give up in seconds; the cold hold lasts minutes) and would leave
+      // the session with an empty Papers tab and id-only source labels until a
+      // manual reload — so re-fetch whatever came back empty.
+      window.RAG.loadPapers().then((p) => setPapers((prev) => (prev.length ? prev : p)));
+      window.RAG.loadFigures().then((f) => setFigures((prev) => (prev && prev.length ? prev : f)));
     });
     return () => clearTimeout(coldTimer);
   }, []);
