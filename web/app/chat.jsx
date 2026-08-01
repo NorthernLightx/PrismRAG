@@ -231,13 +231,25 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
     );
   }
   const cands = turn.candidates;
-  // Rerank scores are logits (any sign, any magnitude) — min-max scale the
-  // bars within the set so they stay comparative; all-negative sets would
-  // otherwise render every bar empty.
-  const scores = cands.map((c) => c.score || 0);
-  const sMax = Math.max(...scores), sMin = Math.min(...scores);
-  const relScore = (s) => (sMax === sMin ? 1 : (s - sMin) / (sMax - sMin));
-  const vis = cands.filter((c) => c.kind === "visual");
+  // Text rerank logits (~±10) and visual patch-sim (~18+) are different
+  // scales, so bars and ranks compare within a leg, never across. A shared
+  // min-max would flatten every text bar the moment one visual candidate
+  // appears. Min-max per leg (rerank logits can be all-negative — raw values
+  // would render empty bars), with a small floor so the leg's worst row still
+  // shows a sliver instead of reading as zero relevance.
+  const legScores = {
+    text: cands.filter((c) => c.kind !== "visual").map((c) => c.score || 0),
+    visual: cands.filter((c) => c.kind === "visual").map((c) => c.score || 0),
+  };
+  const relScore = (c) => {
+    const arr = legScores[c.kind === "visual" ? "visual" : "text"];
+    const mx = Math.max(...arr), mn = Math.min(...arr);
+    return mx === mn ? 1 : 0.08 + 0.92 * (((c.score || 0) - mn) / (mx - mn));
+  };
+  const legRank = (c) => {
+    const arr = legScores[c.kind === "visual" ? "visual" : "text"];
+    return arr.filter((s) => s > (c.score || 0)).length + 1;
+  };
   const total = cands.length;
   // Evidence-mix bars reflect what the answer CITED, not just what was
   // retrieved. On a text route the model can still cite page images attached at
@@ -329,6 +341,11 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
 
         <div className="retr-section">
           <h4>Ranked candidates <span className="n">{total} chunks</span></h4>
+          {legScores.visual.length > 0 && legScores.text.length > 0 && (
+            <div className="cand-src" style={{ marginBottom: 8 }}>
+              text and visual scores aren't comparable — ranks and bars compare within each
+            </div>
+          )}
           {orderedCands.map((c, i) => {
             const num = citedNum(c);
             const hl = highlight && num && String(num) === String(highlight);
@@ -338,10 +355,16 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
                 <div className="cand-top">
                   <span className={"cand-num" + (c.kind === "visual" ? " visual" : "")}>{num || (c.kind === "visual" ? "IMG" : "·")}</span>
                   <span className="cand-src">{c.paper} · p.{c.page}</span>
-                  <span className="cand-score">{c.score.toFixed(3)}</span>
+                  <span className="cand-score">{c.kind === "visual" ? "visual" : "text"} #{legRank(c)} · {(c.score || 0).toFixed(2)}</span>
                 </div>
-                <ScoreBar score={relScore(c.score || 0)} kind={c.kind} />
-                {c.text && <div className="cand-quote">{previewQuote(c.text)}</div>}
+                <ScoreBar score={relScore(c)} kind={c.kind} />
+                {c.kind === "visual" ? (
+                  <div className="answer-fig-img" style={{ height: 84, borderRadius: 6, margin: "6px 0 8px" }}>
+                    <img src={window.RAG.pageImageUrl(c.paper, c.page)} alt={`page ${c.page}`} loading="lazy" />
+                  </div>
+                ) : (
+                  c.text && <div className="cand-quote">{previewQuote(c.text)}</div>
+                )}
                 <div className="cand-meta">
                   <span className="tag">{previewQuote(paperTitle(c.paper), 30)}</span>
                   <span className="view-region"><Icon name="search" size={11} /> region</span>
@@ -371,23 +394,6 @@ function RetrievalPanel({ turn, highlight, settings, paperTitle, routingAvailabl
           </div>
         )}
 
-        {vis.length > 0 && (
-          <div className="retr-section">
-            <h4>Retrieved figures <span className="n">{vis.length}</span></h4>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {vis.map((c, i) => (
-                <div key={c.chunk_id || i} className="figthumb-click" onClick={() => setPageItem(c)} title="View source region on page">
-                  <div className="figthumb">
-                    <div className="answer-fig-img" style={{ height: 84 }}>
-                      <img src={window.RAG.pageImageUrl(c.paper, c.page)} alt={`page ${c.page}`} loading="lazy" />
-                    </div>
-                    <div className="figthumb-meta"><span className="mono">{c.paper}</span> · p.{c.page}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
       <PageRegionModal item={pageItem} onClose={() => setPageItem(null)} paperTitle={paperTitle} />
     </aside>

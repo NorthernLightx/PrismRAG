@@ -187,8 +187,11 @@ function PageRegionModal({ item, onClose, paperTitle }) {
   const isVis = item.kind === "visual";
   const title = paperTitle ? paperTitle(item.paper) : item.paper;
   const hasBbox = Array.isArray(item.bbox) && item.bbox.length === 4;
+  // Visual-store page chunks carry a "[Page image …]" placeholder as their
+  // text — the page render above IS the content, so show no quote for those.
   const rawQuote = String(item.quote || item.text || "").replace(/\s+/g, " ").trim();
-  const quote = rawQuote.length > 320 ? rawQuote.slice(0, 320).trim() + "…" : rawQuote;
+  const placeholder = /^\[Page image /i.test(rawQuote);
+  const quote = placeholder ? "" : rawQuote.length > 320 ? rawQuote.slice(0, 320).trim() + "…" : rawQuote;
 
   return ReactDOM.createPortal(
     <div className="pm-scrim" onClick={onClose}>
